@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: server
-        image: vradnit/hipster-paymentservice:v0.0.2
+        image: vradnit/hipster-paymentservice:v0.0.1
         ports:
         - containerPort: 50051
         env:
@@ -32,19 +32,6 @@ spec:
           value: "1"
         - name: DISABLE_DEBUGGER
           value: "1"
-        readinessProbe:
-          exec:
-            command: ["/bin/grpc_health_probe", "-addr=:50051"]
-        livenessProbe:
-          exec:
-            command: ["/bin/grpc_health_probe", "-addr=:50051"]
-        resources:
-          requests:
-            cpu: 100m
-            memory: 64Mi
-          limits:
-            cpu: 200m
-            memory: 128Mi
         resources: {}
       dnsPolicy: ClusterFirst
       restartPolicy: Always
