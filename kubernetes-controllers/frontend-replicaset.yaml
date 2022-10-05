@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: frontend
+  labels:
+    app: frontend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+      - name: server
+        image: vradnit/hipster-frontend:v0.0.2
+        env:
+        - name: LISTEN_ADDR
+          value: "0.0.0.0"
+        - name: PORT
+          value: "8000"
+        - name: PRODUCT_CATALOG_SERVICE_ADDR
+          value: "192.168.0.1"
+        - name: CURRENCY_SERVICE_ADDR
+          value: "192.168.0.2"
+        - name: CART_SERVICE_ADDR
+          value: "192.168.0.3"
+        - name: RECOMMENDATION_SERVICE_ADDR
+          value: "192.168.0.4"
+        - name: CHECKOUT_SERVICE_ADDR
+          value: "192.168.0.5"
+        - name: SHIPPING_SERVICE_ADDR
+          value: "192.168.0.6"
+        - name: AD_SERVICE_ADDR
+          value: "192.168.0.7"
+        resources: {}
+        ports:
+        - name: http
+          containerPort: 8000
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
