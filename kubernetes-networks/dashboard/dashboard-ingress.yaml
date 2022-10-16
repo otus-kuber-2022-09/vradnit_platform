@@ -1,4 +1,4 @@
-apiVersion: networking.k8s.io/v1
+apiVersion: networking.k8s.io/v1beta1
 kind: Ingress
 metadata:
   name: kubernetes-dashboard
@@ -10,14 +10,11 @@ metadata:
       rewrite ^(/dashboard)$ $1/ redirect;
     kubernetes.io/ingress.class: "nginx"
 spec:
-  ingressClassName: nginx
   rules:
   - http:
       paths:
       - path: /dashboard(/|$)(.*)
         pathType: Prefix
         backend:
-          service:
-            name: kubernetes-dashboard
-            port:
-              number: 443
+          serviceName: kubernetes-dashboard
+          servicePort: 443
