@@ -75,3 +75,62 @@ vradnit Platform repository
 8. Создан манифест daemonset kubernetes-controllers/node-exporter-daemonset.yaml для развертывания NodeExporter.
    Для того чтобы daemonset запустил под на мастер ноде в манифест добавлен "tolerations" на taints 
    "node-role.kubernetes.io/control-plane:NoSchedule"
+
+
+
+
+# ДЗ-3 kubernetes-networks
+
+1. С помощью minikube развернут однонодовый кластер kubernetes.
+
+2. В манифест пода "kubernetes-intro/web-pod.yaml" добавлены проверки состояния liveness и readiness.
+   (проверка readiness заведомо неверная)
+
+3. Вопрос для самопроверки по liveness пробе 'ps aux | grep <process web >'
+   . в данном случае, указанная конфигурация не имеет смысла т.к. 
+   .. процесс httpd имеет pid=1 и если он упадет то kubelet перезапустит контейнер.
+   .. наличие процесса в контейнере не означает что процесс "нормально" работает
+   .. нужно учесть что 'ps aux | grep <process web >' всегда успешно завершается, т.к. "греп отгрепывает сам себя"
+      ( как вариант использовать regex )
+   . но данная проверка может применятся в случае, если "основной процесс контейнера" с помощью "дочерних процессов" выполняет какую-то работу с внешними системами,
+     и "отсутсвие" таких "дочерних процессов" означает что "основной процесс завис и требует перезапуска"
+
+3. На основе манифеста пода создан манифест deployment-а "kubernetes-networks/web-deploy.yaml"
+   По результатам анализа 'kubectl describe deployment XXX' исправлена "ошибка" в liveness пробе.
+
+4. Протестированы различные режимы обновления deployment-а ( strategy "RollingUpdate" )
+   maxUnavailable, maxSurge = (0,0 <ошибка) (100%,0) (0,100%) (100%,100%)
+
+5. Создан сервис "kubernetes-networks/web-svc-cip.yaml"
+   С ноды кластера minikube протестирована работа этого сервиса "curl http://<CLUSTER-IP>/index.html"
+   Просмотрены "цепочки" iptables созданные kube-proxy для этого сервиса.
+
+6. Процесс kube-proxy в minikube переведен в режим "ipvs"
+   Проанализировано изменения в работе iptables.
+   Просмотрены "цепочки" в ipset и "правила" в ipvsadm
+
+7. Установлен и сконфигурирован сервис MetalLB ( конфигмап "kubernetes-networks/metallb-config.yaml" )
+
+8. На основе манифеста web-svc-cip.yaml создан манифест "kubernetes-networks/web-svc-lb.yaml" типа LoadBalancer
+   Настройка необходимого роутинга и проверка доступности сервиса "из вне" кластера minikube
+
+9. Создан манифест типа LoadBalancer (extip 172.17.255.10) "coredns/coredns-svc-lb.yaml" для доступа к внутреннему CoreDns minikube.
+   Проверка работы сервиса "nslookup web-svc-lb.default.svc.cluster.local 172.17.255.10"
+
+10. Установлен ingress-nginx контроллер.
+    Для доступа "снаружи кластера" сконфигурирован LB сервис "kubernetes-networks/nginx-lb.yaml"
+
+11. Для доступа к приложению deployment/web сконфигурированы:
+    сервис "kubernetes-networks/web-svc-headless.yaml" ( типа ClusterIP )
+    и ingress "kubernetes-networks/web-ingress.yaml"
+
+    Проверка доступности приложения: "curl http://<LB_IP>/web/index.html"
+
+12. Установлен kubernetes-dashboard из "https://github.com/kubernetes/dashboard"
+    Для доступа к kubernetes-dashboard через ingress-nginx cоздан и протестирован манифест "kubernetes-networks/dashboard/dashboard-ingress.yaml"
+
+13. По документации "https://github.com/kubernetes/ingress-nginx/blob/master/docs/user-guide/nginx-configuration/annotations.md#canary" созданы
+    манифесты для канареечного развертывания:
+    "kubernetes-networks/canary/canary-web-deploy.yaml"
+    "kubernetes-networks/canary/canary-web-ingress.yaml"
+    "kubernetes-networks/canary/canary-web-svc.yaml"
