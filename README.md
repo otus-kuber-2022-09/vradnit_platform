@@ -75,3 +75,26 @@ vradnit Platform repository
 8. Создан манифест daemonset kubernetes-controllers/node-exporter-daemonset.yaml для развертывания NodeExporter.
    Для того чтобы daemonset запустил под на мастер ноде в манифест добавлен "tolerations" на taints 
    "node-role.kubernetes.io/control-plane:NoSchedule"
+
+
+
+
+# ДЗ-4 Kubernetes-volumes
+
+1. С помощью kind установлен однонодовый кластер kubernetes
+
+2. Развернут statefulset Minio "kubernetes-volumes/minio-statefulset.yaml"
+   ( оригинал https://raw.githubusercontent.com/express42/otus-platform-snippets/master/Module-02/Kuberenetes-volumes/minio-statefulset.yaml )
+
+3. Развернут headless service для minio "kubernetes-volumes/minio-headless-service.yaml"
+   ( оригинал https://raw.githubusercontent.com/express42/otus-platform-snippets/master/Module-02/Kuberenetes-volumes/minio-headless-service.yaml )
+
+4. Проверки работы компонентов инстанса минио:
+   kubectl get statefulsets
+   kubectl get pods
+   kubectl get pvc
+   kubectl get pv
+   kubectl describe <resource> <resource_name>
+
+5. Для более "безопасного" хранения секретов, создан secret "kubernetes-volumes/minio-secrets.yaml"
+   Манифест statefulset-a "kubernetes-volumes/minio-statefulset.yaml" переконфигурирован на использование этого secret
