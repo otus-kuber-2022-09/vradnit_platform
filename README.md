@@ -75,3 +75,52 @@ vradnit Platform repository
 8. Создан манифест daemonset kubernetes-controllers/node-exporter-daemonset.yaml для развертывания NodeExporter.
    Для того чтобы daemonset запустил под на мастер ноде в манифест добавлен "tolerations" на taints 
    "node-role.kubernetes.io/control-plane:NoSchedule"
+
+
+
+
+# ДЗ-5 Kubernetes-security
+
+1. С помощью kind установлен однонодовый кластер kubernetes.
+
+2. task01:
+   . создан serviceaccount bob и ему выдана роль admin на весь кластер
+     task01/01-serviceaccount-bob.yaml
+     task01/02-clusterrolebinding-admin-bob.yaml
+     
+   . создан serviceaccount dave без доступа к кластеру
+     task01/03-serviceaccount-dave.yaml
+
+   . проверка:
+     kubectl auth can-i --list --as=system:serviceaccount:default:bob --namespace=xxx
+     kubectl auth can-i --list --as=system:serviceaccount:default:dave --namespace=default
+
+3. task02:
+   . создан неймспейс "prometheus" и в нем создан ServiceAccount "carol"
+     task02/01-namespace-prometheus.yaml
+     task02/02-serviceaccount-carol.yaml
+
+   . Всем ServiceAccount в неймспейсе "prometheus" выданы права на "get/list/watch" в отношении "Pod" для всего кластера
+     task02/03-clusterrole-for-ns-prometheus.yaml
+     task02/04-clusterrolebinding-for-ns-prometheus.yaml
+
+   . проверка:
+     kubectl auth can-i --list --as=system:serviceaccount:prometheus:xxx --namespace=kube-system
+     kubectl auth can-i --list --as=system:serviceaccount:xxx:xxx --namespace=kube-system
+
+4. task03:
+   . создан неймспейс "dev", в нем ServiceAccount "jane" с ролью "admin" в рамках этого неймспейса
+     task03/01-namespace-dev.yaml
+     task03/02-serviceaccount-jane.yaml
+     task03/03-clusterrolebinding-jane.yaml
+
+   . в неймспейсе "dev" создан ServiceAccount "ken" с ролью "view" в рамках этого неймспейса
+     task03/04-serviceaccount-ken.yaml
+     task03/05-clusterrolebinding-ken.yaml
+   
+   . проверка: 
+     kubectl auth can-i --list --as=system:serviceaccount:dev:jane --namespace=dev
+     kubectl auth can-i --list --as=system:serviceaccount:dev:jane --namespace=kube-system
+
+     kubectl auth can-i --list --as=system:serviceaccount:dev:ken --namespace=dev
+     kubectl auth can-i --list --as=system:serviceaccount:dev:ken --namespace=kube-system
