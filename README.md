@@ -79,6 +79,65 @@ vradnit Platform repository
 
 
 
+# ДЗ-3 kubernetes-networks
+
+1. С помощью minikube развернут однонодовый кластер kubernetes.
+
+2. В манифест пода "kubernetes-intro/web-pod.yaml" добавлены проверки состояния liveness и readiness.
+   (проверка readiness заведомо неверная)
+
+3. Вопрос для самопроверки по liveness пробе 'ps aux | grep <process web >'
+   . в данном случае, указанная конфигурация не имеет смысла т.к. 
+   .. процесс httpd имеет pid=1 и если он упадет то kubelet перезапустит контейнер.
+   .. наличие процесса в контейнере не означает что процесс "нормально" работает
+   .. нужно учесть что 'ps aux | grep <process web >' всегда успешно завершается, т.к. "греп отгрепывает сам себя"
+      ( как вариант использовать regex )
+   . но данная проверка может применятся в случае, если "основной процесс контейнера" с помощью "дочерних процессов" выполняет какую-то работу с внешними системами,
+     и "отсутсвие" таких "дочерних процессов" означает что "основной процесс завис и требует перезапуска"
+
+3. На основе манифеста пода создан манифест deployment-а "kubernetes-networks/web-deploy.yaml"
+   По результатам анализа 'kubectl describe deployment XXX' исправлена "ошибка" в liveness пробе.
+
+4. Протестированы различные режимы обновления deployment-а ( strategy "RollingUpdate" )
+   maxUnavailable, maxSurge = (0,0 <ошибка) (100%,0) (0,100%) (100%,100%)
+
+5. Создан сервис "kubernetes-networks/web-svc-cip.yaml"
+   С ноды кластера minikube протестирована работа этого сервиса "curl http://<CLUSTER-IP>/index.html"
+   Просмотрены "цепочки" iptables созданные kube-proxy для этого сервиса.
+
+6. Процесс kube-proxy в minikube переведен в режим "ipvs"
+   Проанализировано изменения в работе iptables.
+   Просмотрены "цепочки" в ipset и "правила" в ipvsadm
+
+7. Установлен и сконфигурирован сервис MetalLB ( конфигмап "kubernetes-networks/metallb-config.yaml" )
+
+8. На основе манифеста web-svc-cip.yaml создан манифест "kubernetes-networks/web-svc-lb.yaml" типа LoadBalancer
+   Настройка необходимого роутинга и проверка доступности сервиса "из вне" кластера minikube
+
+9. Создан манифест типа LoadBalancer (extip 172.17.255.10) "coredns/coredns-svc-lb.yaml" для доступа к внутреннему CoreDns minikube.
+   Проверка работы сервиса "nslookup web-svc-lb.default.svc.cluster.local 172.17.255.10"
+
+10. Установлен ingress-nginx контроллер.
+    Для доступа "снаружи кластера" сконфигурирован LB сервис "kubernetes-networks/nginx-lb.yaml"
+
+11. Для доступа к приложению deployment/web сконфигурированы:
+    сервис "kubernetes-networks/web-svc-headless.yaml" ( типа ClusterIP )
+    и ingress "kubernetes-networks/web-ingress.yaml"
+
+    Проверка доступности приложения: "curl http://<LB_IP>/web/index.html"
+
+12. Установлен kubernetes-dashboard из "https://github.com/kubernetes/dashboard"
+    Для доступа к kubernetes-dashboard через ingress-nginx cоздан и протестирован манифест "kubernetes-networks/dashboard/dashboard-ingress.yaml"
+
+13. По документации "https://github.com/kubernetes/ingress-nginx/blob/master/docs/user-guide/nginx-configuration/annotations.md#canary" созданы
+    манифесты для канареечного развертывания:
+    "kubernetes-networks/canary/canary-web-deploy.yaml"
+    "kubernetes-networks/canary/canary-web-ingress.yaml"
+    "kubernetes-networks/canary/canary-web-svc.yaml"
+
+
+
+
 # ДЗ-4 Kubernetes-volumes
 
 1. С помощью kind установлен однонодовый кластер kubernetes
@@ -98,3 +157,51 @@ vradnit Platform repository
 
 5. Для более "безопасного" хранения секретов, создан secret "kubernetes-volumes/minio-secrets.yaml"
    Манифест statefulset-a "kubernetes-volumes/minio-statefulset.yaml" переконфигурирован на использование этого secret
+
+
+
+# ДЗ-5 Kubernetes-security
+
+1. С помощью kind установлен однонодовый кластер kubernetes.
+
+2. task01:
+   . создан serviceaccount bob и ему выдана роль admin на весь кластер
+     task01/01-serviceaccount-bob.yaml
+     task01/02-clusterrolebinding-admin-bob.yaml
+     
+   . создан serviceaccount dave без доступа к кластеру
+     task01/03-serviceaccount-dave.yaml
+
+   . проверка:
+     kubectl auth can-i --list --as=system:serviceaccount:default:bob --namespace=xxx
+     kubectl auth can-i --list --as=system:serviceaccount:default:dave --namespace=default
+
+3. task02:
+   . создан неймспейс "prometheus" и в нем создан ServiceAccount "carol"
+     task02/01-namespace-prometheus.yaml
+     task02/02-serviceaccount-carol.yaml
+
+   . Всем ServiceAccount в неймспейсе "prometheus" выданы права на "get/list/watch" в отношении "Pod" для всего кластера
+     task02/03-clusterrole-for-ns-prometheus.yaml
+     task02/04-clusterrolebinding-for-ns-prometheus.yaml
+
+   . проверка:
+     kubectl auth can-i --list --as=system:serviceaccount:prometheus:xxx --namespace=kube-system
+     kubectl auth can-i --list --as=system:serviceaccount:xxx:xxx --namespace=kube-system
+
+4. task03:
+   . создан неймспейс "dev", в нем ServiceAccount "jane" с ролью "admin" в рамках этого неймспейса
+     task03/01-namespace-dev.yaml
+     task03/02-serviceaccount-jane.yaml
+     task03/03-clusterrolebinding-jane.yaml
+
+   . в неймспейсе "dev" создан ServiceAccount "ken" с ролью "view" в рамках этого неймспейса
+     task03/04-serviceaccount-ken.yaml
+     task03/05-clusterrolebinding-ken.yaml
+   
+   . проверка: 
+     kubectl auth can-i --list --as=system:serviceaccount:dev:jane --namespace=dev
+     kubectl auth can-i --list --as=system:serviceaccount:dev:jane --namespace=kube-system
+
+     kubectl auth can-i --list --as=system:serviceaccount:dev:ken --namespace=dev
+     kubectl auth can-i --list --as=system:serviceaccount:dev:ken --namespace=kube-system
