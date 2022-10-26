@@ -138,6 +138,28 @@ vradnit Platform repository
 
 
 
+# ДЗ-4 Kubernetes-volumes
+
+1. С помощью kind установлен однонодовый кластер kubernetes
+
+2. Развернут statefulset Minio "kubernetes-volumes/minio-statefulset.yaml"
+   ( оригинал https://raw.githubusercontent.com/express42/otus-platform-snippets/master/Module-02/Kuberenetes-volumes/minio-statefulset.yaml )
+
+3. Развернут headless service для minio "kubernetes-volumes/minio-headless-service.yaml"
+   ( оригинал https://raw.githubusercontent.com/express42/otus-platform-snippets/master/Module-02/Kuberenetes-volumes/minio-headless-service.yaml )
+
+4. Проверки работы компонентов инстанса минио:
+   kubectl get statefulsets
+   kubectl get pods
+   kubectl get pvc
+   kubectl get pv
+   kubectl describe <resource> <resource_name>
+
+5. Для более "безопасного" хранения секретов, создан secret "kubernetes-volumes/minio-secrets.yaml"
+   Манифест statefulset-a "kubernetes-volumes/minio-statefulset.yaml" переконфигурирован на использование этого secret
+
+
+
 # ДЗ-5 Kubernetes-security
 
 1. С помощью kind установлен однонодовый кластер kubernetes.
@@ -183,4 +205,3 @@ vradnit Platform repository
 
      kubectl auth can-i --list --as=system:serviceaccount:dev:ken --namespace=dev
      kubectl auth can-i --list --as=system:serviceaccount:dev:ken --namespace=kube-system
-
