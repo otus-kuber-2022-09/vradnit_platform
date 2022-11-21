@@ -209,7 +209,7 @@ vradnit Platform repository
 
 
 
-# ДЗ-5 Kubernetes-templating
+# ДЗ-7 Kubernetes-templating
 
 1. В собственной инфраструктуре, с помощью kubeadm, развернут кластер k8s.
    На локальный компьютер установлен helm3 (v3.10.1)
