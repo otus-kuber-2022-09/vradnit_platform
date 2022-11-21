@@ -205,3 +205,187 @@ vradnit Platform repository
 
      kubectl auth can-i --list --as=system:serviceaccount:dev:ken --namespace=dev
      kubectl auth can-i --list --as=system:serviceaccount:dev:ken --namespace=kube-system
+
+
+
+
+# ДЗ-5 Kubernetes-templating
+
+1. В собственной инфраструктуре, с помощью kubeadm, развернут кластер k8s.
+   На локальный компьютер установлен helm3 (v3.10.1)
+
+2. Установка ingress-nginx
+   helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+   helm upgrade --install ingress-nginx ingress-nginx/ingress-nginx --version=4.3.0 --namespace=ingress-nginx --create-namespace --wait
+
+3. Установка cert-manager
+   helm repo add jetstack https://charts.jetstack.io
+   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.10.0/cert-manager.crds.yaml
+   helm upgrade --install cert-manager jetstack/cert-manager --namespace=cert-manager --version=v1.10.0 --create-namespace --wait
+
+   Для работы certmanager требуется создать ресурсы ClusterIssue:
+   kubectl create -f kubernetes-templating/cert-manager/clusterissuer-letsencrypt-production.yaml
+   kubectl create -f kubernetes-templating/cert-manager/clusterissuer-letsencrypt-staging.yaml
+
+4. Установка chartmuseum
+   Создан kubernetes-templating/chartmuseum/values.yaml с кастомными параметрами
+   helm upgrade chartmuseum -n chartmuseum chartmuseum/chartmuseum -f ./chartmuseum/values.yaml --version=3.9.1 --set=env.secret.BASIC_AUTH_USER=admin --set env.secret.BASIC_AUTH_PASS='XXXXXX'
+
+   Просмотр с какими параметрами был установлен chart:
+   helm status chartmuseum -n chartmuseum -o json | jq .config
+
+   Для загрузки chart в chartmuseum.radnit.ru установим плагин для helm:
+   helm plugin install https://github.com/chartmuseum/helm-push
+
+   Добавим repo для локального использования:
+   helm repo add templating https://chartmuseum.radnit.ru
+
+   Загрузка chart в repo:
+   helm cm-push -u admin -p 'XXXXXX' ./frontend https://chartmuseum.radnit.ru
+   helm repo update templating/
+
+   Удаление chart из repo:
+   curl -XDELETE 'https://admin:XXXXXX@chartmuseum.radnit.ru/api/charts/frontend/0.1.0'
+   helm repo update templating/
+
+   Проверка:
+   curl -D - https://chartmuseum.radnit.ru
+
+5. Установка harbor
+   helm add harbor https://helm.goharbor.io
+
+   Создан kubernetes-templating/harbor/values.yaml с кастомными параметрами
+   helm upgrade --install harbor harbor/harbor -f harbor/values.yaml --version=1.10.1 --namespace=harbor --create-namespace --wait
+
+   Просмотр с какими параметрами был установлен chart harbor:
+   helm status harbor -n harbor -o json | jq ' .config '
+
+   Проверка:
+   curl -D - https://harbor.radnit.ru
+
+6. Helmfile.
+   Вариант с использованием helmfile, для установки ingress-nginx, cert-manager и harbor:
+   Создан манифест kubernetes-templating/helmfile/helmfile.yaml с описанием общей конфигурации
+   Создан "chart" kubernetes-templating/helmfile/charts/cert-manager-clusterissuers
+   для установки ресурсов ClusterIssue для cert-manager
+
+   установка через helmfile
+   cd kubernetes-templating/helmfile && helmfile lint && helmfile apply
+
+   helmfile status
+
+7. Создаем helm chart "hipster-shop":
+   Используя https://github.com/express42/otus-platform-snippets/blob/master/Module-04/05-Templating/manifests/all-hipster-shop.yaml
+   в директории kubernetes-templating/hipster-shop создан helm chart "hipster-shop"
+
+   Устанавливаем его:
+   helm upgrade --install hipster-shop kubernetes-templating/hipster-shop -n hipster-shop --create-namespace
+
+   Проверка:
+   curl -D - https://shop.radnit.ru
+
+8. Создаем helm chart "frontend":
+   В директории kubernetes-templating/frontend создаем helm chart "frontend"
+   Используем для него манифесты deployment, service и ingress микросервиса "frontend" из chart-а "hipster-shop"
+   ( и соотвественно удаляем вынесенные манифесты из chart-а "hipster-shop" )
+   Выносим "нужные" параметры конфигурации микросервиса frontnend в kubernetes-templating/frontend/values.yaml
+
+   Устанавливаем chart:
+   helm upgrade --install frontend kubernetes-templating/frontend --namespace hipster-shop
+
+9. Конфигурирум chart "frontend" как subchart chart-a "hipster-shop"
+   Предварительно удаляем chart "frontend"
+   helm delete frontend -n hipster-shop
+
+   В файл  kubernetes-templating/hipster-shop/Chart.yaml в dependencies вносим chart "frontend"
+   и обновляем chart "hipster-shop"
+   helm dep update kubernetes-templating/hipster-shop
+
+   Проверяем что в kubernetes-templating/hipster-shop/charts появился subchart "frontend"
+
+   Обновляем release "hipster-shop":
+   helm upgrade --install hipster-shop kubernetes-templating/hipster-shop -n hipster-shop
+
+10. Микросервис "redis" вынесен из chart "hipster-shop", и добавлен как subchart
+    Для этого использован redis от https://charts.bitnami.com/bitnami
+
+    Необходимая конфигурация внесена в:
+    kubernetes-templating/hipster-shop/Chart.yaml
+    kubernetes-templating/hipster-shop/values.yaml
+
+    и изменен микросервис cartservice ( в связи с изменением имен )
+
+    helm dep update kubernetes-templating/hipster-shop
+    helm upgrade --install hipster-shop kubernetes-templating/hipster-shop -n hipster-shop
+
+11. Sops + helm-secret
+    Создан зашифрованный файл с секретом: kubernetes-templating/frontend/secrets.yaml
+    Создан темплейт для формирования манифеста с секретом: kubernetes-templating/frontend/templates/secret.yaml
+
+    проверка, что файл расшифровывается:
+    sops -d kubernetes-templating/frontend/secrets.yaml
+
+    Установка chart-a с зашифрованным секретом:
+    helm secrets upgrade --install frontend kubernetes-templating/frontend -n hipster-shop \
+    -f kubernetes-templating/frontend/values.yaml \
+    -f kubernetes-templating/frontend/secrets.yaml
+
+12. На мой взгляд, для того, чтобы "исключить" попадания файлов с секретами в во внешний git repo,
+    необходимо исключить push для всех в основные ветки, и использовать для только merge-requests.
+    При появлении в repo новых веток, а также при каждом merge-requests необходимо в CI обеспечить запуск линтеров и сканеров безопасности.
+    При появлении "чувствительных данных" необходимо или блокировать доступ к новой-ветке, или удалять ее, или вырезать commit c "чувствительными даннными"
+
+13. Создан файл:
+    kubernetes-templating/repo.sh
+
+    для установки чартов:
+     templating/frontend
+     templating/hipster-shop
+
+14. Kubecfg.
+    Установлен kubecfg из https://github.com/kubecfg/kubecfg/releases/tag/v0.28.0
+
+    Используя файлы манифестов paymentservice и shippingservice из chart "hipster-shop"
+    , а также внешнюю библиотеку: https://raw.githubusercontent.com/bitnami-labs/kube-libsonnet/master/kube.libsonnet
+    сформированы файлы:
+      kubernetes-templating/kubecfg/common.libsonnet
+      kubernetes-templating/kubecfg/services.jsonnet
+
+    ( манифесты paymentservice и shippingservice из chart "hipster-shop" удалены )
+
+    Проверка:
+    kubecfg show kubernetes-templating/kubecfg/services.jsonnet
+
+    Установка:
+    kubecfg update kubernetes-templating/kubecfg/services.jsonnet
+
+15. Qbec
+    Установлен qbec из https://github.com/splunk/qbec/releases/tag/v0.15.2
+
+    На основе манифестов микросервиса recommendationservice из chart "hipster-shop" в
+    kubernetes-templating/jsonnet/recommendationservice-qbec/
+    создана шаблонизация на основе qbec
+    ( манифесты recommendationservice из chart "hipster-shop" удалены )
+
+    cd kubernetes-templating/jsonnet/recommendationservice-qbec
+
+    Проверка и просмотр манифестов:
+    qbec env list
+    qbec show prod
+    qbec show stage
+
+    Установка для окружения "prod":
+    qbec apply prod
+
+16. Kustomize
+    На основе манифестов микросервиса productcatalogservice из chart "hipster-shop" в
+    kubernetes-templating/kustomize
+    создана шаблонизация на основе kustomize
+    ( манифесты productcatalogservice из chart "hipster-shop" удалены )
+
+    Просмотр:
+    kubectl kustomize kubernetes-templating/kustomize/overrides/hipster-shop
+    kubectl kustomize kubernetes-templating/kustomize/overrides/hipster-shop-prod
+
+    установка для окружения "hipster-shop":
+    kubectl kustomize kubernetes-templating/kustomize/overrides/hipster-shop | kubectl apply -f -
