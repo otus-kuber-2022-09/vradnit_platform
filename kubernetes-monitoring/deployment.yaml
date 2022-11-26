@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: nginx
+  name: nginx
+spec:
+  replicas: 1
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels:
+      app: nginx
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: nginx
+    spec:
+      containers:
+      - name: nginx-unprivileged
+        image: nginxinc/nginx-unprivileged:1.22-alpine
+        imagePullPolicy: IfNotPresent
+        resources: {}
+        volumeMounts:
+        - name: nginx-config
+          mountPath: /usr/share/nginx/html/index.html
+          subPath: index.html
+        - name: nginx-config
+          mountPath: /etc/nginx/conf.d/000_status.conf
+          subPath: 000_status.conf
+        ports:
+        - containerPort: 8080
+          name: web
+          protocol: TCP
+      - name: nginx-prometheus-exporter
+        image: nginx/nginx-prometheus-exporter:0.11.0
+        args: ['-nginx.scrape-uri=http://127.0.0.1:50080/basic_status']
+        imagePullPolicy: IfNotPresent
+        resources: {}
+        ports:
+        - containerPort: 9113
+          name: metrics
+          protocol: TCP
+      volumes:
+      - name: nginx-config
+        configMap:
+          name: nginx-config
+      restartPolicy: Always
