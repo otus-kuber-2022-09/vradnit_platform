@@ -1,0 +1,34 @@
+repositories:
+  - name: ingress-nginx
+    url: https://kubernetes.github.io/ingress-nginx
+  - name: jetstack
+    url: https://charts.jetstack.io
+  - name: harbor
+    url: https://helm.goharbor.io
+
+helmDefaults:
+  wait: true
+  timeout: 300
+  createNamespace: true
+
+releases:
+  - name: ingress-nginx
+    namespace: ingress-nginx
+    chart: ingress-nginx/ingress-nginx
+    version: 4.3.0
+  - name: cert-manager
+    namespace: cert-manager
+    chart: jetstack/cert-manager
+    version: v1.10.0
+    values:
+    - installCRDs: true
+  - name: cert-manager-clusterissuers
+    chart: charts/cert-manager-clusterissuers
+    values:
+    - email: vradnit@gmail.com
+  - name: harbor
+    namespace: harbor
+    chart: harbor/harbor
+    version: 1.10.1
+    values:
+    - "../harbor/values.yaml"
