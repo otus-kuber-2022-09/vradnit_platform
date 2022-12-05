@@ -444,21 +444,21 @@ vradnit Platform repository
 
 9.  После итераций "создание"->"удаление(+backup)"->"создание(+recovery from backup)"
     Состояние джоб:
-    # k get jobs
+    kubectl get jobs
     NAME                         COMPLETIONS   DURATION   AGE
     backup-mysql-instance-job    1/1           5s         2m31s
     restore-mysql-instance-job   1/1           108s       110s
 
     Состояние БД:
-    # ./testdata.sh show otuspassword
-    +----+-------------+
-    | id | name        |
-    +----+-------------+
-    |  1 | some data-1 |
-    |  2 | some data-2 |
-    |  3 | some data-3 |
-    |  4 | some data-4 |
-    +----+-------------+
+    ./testdata.sh show otuspassword
+        +----+-------------+
+        | id | name        |
+        +----+-------------+
+        |  1 | some data-1 |
+        |  2 | some data-2 |
+        |  3 | some data-3 |
+        |  4 | some data-4 |
+        +----+-------------+
 
 10. Для того, чтобы оператор стал "писать" в "status subresource"
     в спецификации CRD было добавлено описание поля "status"
@@ -473,11 +473,11 @@ vradnit Platform repository
 
     результат:
 
-    status:
-      kopf:
-        progress: {}
-      mysql_on_create:
-        restoreJob: successful
+        status:
+          kopf:
+            progress: {}
+          mysql_on_create:
+            restoreJob: successful
 
 11. Для реализации логики изменения пароля в "mysql" при его изменении в CR
     Добавлена функция "password_changed(body, old, new, **_)"
@@ -509,7 +509,7 @@ vradnit Platform repository
 
     При этом статус джоб:
 
-    # k get jobs
+    kubectl get jobs
     NAME                                 COMPLETIONS   DURATION   AGE
     backup-mysql-instance-job            1/1           5s         42m
     change-password-mysql-instance-job   1/1           5s         3m2s
