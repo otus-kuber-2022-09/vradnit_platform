@@ -462,24 +462,22 @@ vradnit Platform repository
 
 10. Для того, чтобы оператор стал "писать" в "status subresource"
     в спецификации CRD было добавлено описание поля "status"
-    ---------------
+
             status:
               type: object
               x-kubernetes-preserve-unknown-fields: true
-    ---------------
 
     а для вывода "статуса" выполнения "restore-job" в участок кода добавлена переменная "status_restore_job",
     в которую сохраняется "статус" выполения джобы, а функция "mysql_on_create" возвращает"
     " return {'restoreJob': str(status_restore_job)} "
 
     результат:
-    ---------------
+
     status:
       kopf:
         progress: {}
       mysql_on_create:
         restoreJob: successful
-    ---------------
 
 11. Для реализации логики изменения пароля в "mysql" при его изменении в CR
     Добавлена функция "password_changed(body, old, new, **_)"
@@ -496,7 +494,7 @@ vradnit Platform repository
     Перед запуском "джобы смены пароля", предыдущая аналогичная джоба удаляется
 
     Пример лога оператора при изменении пароля через CR
-    ---------------
+
     [2022-12-05 18:35:26,596] kopf.objects         [INFO    ] [default/mysql-instance] Handler 'password_changed/spec.password' succeeded.
     [2022-12-05 18:35:26,597] kopf.objects         [INFO    ] [default/mysql-instance] Updating is processed: 1 succeeded; 0 failed.
     [2022-12-05 18:37:09,677] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] found, wait untill end
@@ -508,13 +506,11 @@ vradnit Platform repository
     [2022-12-05 18:37:14,760] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] end sucessful
     [2022-12-05 18:37:14,761] kopf.objects         [INFO    ] [default/mysql-instance] Handler 'password_changed/spec.password' succeeded.
     [2022-12-05 18:37:14,762] kopf.objects         [INFO    ] [default/mysql-instance] Updating is processed: 1 succeeded; 0 failed.
-    ---------------
 
     При этом статус джоб:
-    ---------------
+
     # k get jobs
     NAME                                 COMPLETIONS   DURATION   AGE
     backup-mysql-instance-job            1/1           5s         42m
     change-password-mysql-instance-job   1/1           5s         3m2s
     restore-mysql-instance-job           1/1           23s        42m
-    ---------------
