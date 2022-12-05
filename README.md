@@ -404,14 +404,14 @@ vradnit Platform repository
     со списком всех "обязательных" полей
 
 4.  В директории "kubernetes-operators/build/templates/" сохранены используемые шаблоны:
-    kubernetes-operators/build/templates/backup-pv.yml.j2
-    kubernetes-operators/build/templates/mysql-pvc.yml.j2
-    kubernetes-operators/build/templates/mysql-deployment.yml.j2
-    kubernetes-operators/build/templates/mysql-pv.yml.j2
-    kubernetes-operators/build/templates/mysql-service.yml.j2
-    kubernetes-operators/build/templates/backup-job.yml.j2
-    kubernetes-operators/build/templates/restore-job.yml.j2
-    kubernetes-operators/build/templates/backup-pvc.yml.j2
+        kubernetes-operators/build/templates/backup-pv.yml.j2
+        kubernetes-operators/build/templates/mysql-pvc.yml.j2
+        kubernetes-operators/build/templates/mysql-deployment.yml.j2
+        kubernetes-operators/build/templates/mysql-pv.yml.j2
+        kubernetes-operators/build/templates/mysql-service.yml.j2
+        kubernetes-operators/build/templates/backup-job.yml.j2
+        kubernetes-operators/build/templates/restore-job.yml.j2
+        kubernetes-operators/build/templates/backup-pvc.yml.j2
 
 5.  В результате выполнения шагов ДЗ, используя python + библиотеку kopf, был создан kubernetes-operator
     "kubernetes-operators/build/mysql-operator.py"
@@ -432,25 +432,25 @@ vradnit Platform repository
     "kubernetes-operators/build/Dockerfile"
 
 7.  Для деплоя оператора в кластер kubernetes созданы манифесты:
-    kubernetes-operators/deploy/deploy-operator.yml
-    kubernetes-operators/deploy/service-account.yml
-    kubernetes-operators/deploy/role.yml
-    kubernetes-operators/deploy/role-binding.yml
+        kubernetes-operators/deploy/deploy-operator.yml
+        kubernetes-operators/deploy/service-account.yml
+        kubernetes-operators/deploy/role.yml
+        kubernetes-operators/deploy/role-binding.yml
 
 8.  Для тестирования загрузки тестовых данных написан скрипт:
     "kubernetes-operators/build/testdata.sh"
     пример использования:
-    ./testdata.sh [upload|show] [password]
+        ./testdata.sh [upload|show] [password]
 
 9.  После итераций "создание"->"удаление(+backup)"->"создание(+recovery from backup)"
     Состояние джоб:
-    kubectl get jobs
-    NAME                         COMPLETIONS   DURATION   AGE
-    backup-mysql-instance-job    1/1           5s         2m31s
-    restore-mysql-instance-job   1/1           108s       110s
+        kubectl get jobs
+        NAME                         COMPLETIONS   DURATION   AGE
+        backup-mysql-instance-job    1/1           5s         2m31s
+        restore-mysql-instance-job   1/1           108s       110s
 
     Состояние БД:
-    ./testdata.sh show otuspassword
+        ./testdata.sh show otuspassword
         +----+-------------+
         | id | name        |
         +----+-------------+
@@ -489,28 +489,28 @@ vradnit Platform repository
     используется -> "if old_password and new_password"
 
     Для запуска джобы создан темплейт манифеста "change-password-job.yml.j2", его задача выполнить команду смены пароля:
-    mysql -u root -h {{ name }} -p{{ old_password }} mysql -e "ALTER USER root IDENTIFIED BY '{{ new_password }}', 'root'@'localhost' IDENTIFIED BY '{{ new_password }}'"
+        mysql -u root -h {{ name }} -p{{ old_password }} mysql -e "ALTER USER root IDENTIFIED BY '{{ new_password }}', 'root'@'localhost' IDENTIFIED BY '{{ new_password }}'"
 
     Перед запуском "джобы смены пароля", предыдущая аналогичная джоба удаляется
 
-    Пример лога оператора при изменении пароля через CR
+    Пример лога оператора при изменении пароля через CR:
 
-    [2022-12-05 18:35:26,596] kopf.objects         [INFO    ] [default/mysql-instance] Handler 'password_changed/spec.password' succeeded.
-    [2022-12-05 18:35:26,597] kopf.objects         [INFO    ] [default/mysql-instance] Updating is processed: 1 succeeded; 0 failed.
-    [2022-12-05 18:37:09,677] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] found, wait untill end
-    [2022-12-05 18:37:10,693] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] found, wait untill end
-    [2022-12-05 18:37:11,708] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] found, wait untill end
-    [2022-12-05 18:37:12,724] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] found, wait untill end
-    [2022-12-05 18:37:13,742] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] found, wait untill end
-    [2022-12-05 18:37:14,759] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] found, wait untill end
-    [2022-12-05 18:37:14,760] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] end sucessful
-    [2022-12-05 18:37:14,761] kopf.objects         [INFO    ] [default/mysql-instance] Handler 'password_changed/spec.password' succeeded.
-    [2022-12-05 18:37:14,762] kopf.objects         [INFO    ] [default/mysql-instance] Updating is processed: 1 succeeded; 0 failed.
+        [2022-12-05 18:35:26,596] kopf.objects         [INFO    ] [default/mysql-instance] Handler 'password_changed/spec.password' succeeded.
+        [2022-12-05 18:35:26,597] kopf.objects         [INFO    ] [default/mysql-instance] Updating is processed: 1 succeeded; 0 failed.
+        [2022-12-05 18:37:09,677] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] found, wait untill end
+        [2022-12-05 18:37:10,693] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] found, wait untill end
+        [2022-12-05 18:37:11,708] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] found, wait untill end
+        [2022-12-05 18:37:12,724] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] found, wait untill end
+        [2022-12-05 18:37:13,742] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] found, wait untill end
+        [2022-12-05 18:37:14,759] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] found, wait untill end
+        [2022-12-05 18:37:14,760] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] end sucessful
+        [2022-12-05 18:37:14,761] kopf.objects         [INFO    ] [default/mysql-instance] Handler 'password_changed/spec.password' succeeded.
+        [2022-12-05 18:37:14,762] kopf.objects         [INFO    ] [default/mysql-instance] Updating is processed: 1 succeeded; 0 failed.
 
     При этом статус джоб:
 
-    kubectl get jobs
-    NAME                                 COMPLETIONS   DURATION   AGE
-    backup-mysql-instance-job            1/1           5s         42m
-    change-password-mysql-instance-job   1/1           5s         3m2s
-    restore-mysql-instance-job           1/1           23s        42m
+        kubectl get jobs
+        NAME                                 COMPLETIONS   DURATION   AGE
+        backup-mysql-instance-job            1/1           5s         42m
+        change-password-mysql-instance-job   1/1           5s         3m2s
+        restore-mysql-instance-job           1/1           23s        42m
