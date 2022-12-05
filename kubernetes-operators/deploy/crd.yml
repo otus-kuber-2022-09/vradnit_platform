@@ -33,6 +33,11 @@ spec:
                   type: string
                 storage_size:
                   type: string
+              required:
+              - image
+              - database
+              - password
+              - storage_size
             status:
               type: object
               x-kubernetes-preserve-unknown-fields: true

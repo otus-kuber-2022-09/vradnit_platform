@@ -6,6 +6,22 @@ from jinja2 import Environment, FileSystemLoader
 import logging
 
 
+def wait_until_job_end(jobname):
+    api = kubernetes.client.BatchV1Api()
+    job_finished = False
+    jobs = api.list_namespaced_job('default')
+    while (not job_finished) and \
+            any(job.metadata.name == jobname for job in jobs.items):
+        time.sleep(1)
+        jobs = api.list_namespaced_job('default')
+        for job in jobs.items:
+            if job.metadata.name == jobname:
+                logging.info(f"Job with name:[{jobname}] found, wait untill end")
+                if job.status.succeeded == 1:
+                    job_finished = True
+                    logging.info(f"Job with name:[{jobname}] end sucessful")
+
+
 def render_template(filename, vars_dict):
     env = Environment(loader=FileSystemLoader('./templates'))
     template = env.get_template(filename)
@@ -29,22 +45,6 @@ def delete_success_jobs(mysql_instance_name):
                 logging.info(f"Job with name:[{jobname}] deleted")
             else:
                 logging.info(f"Job with name:[{jobname}] unsucceeded state NOT deleted")
-
-
-def wait_until_job_end(jobname):
-    api = kubernetes.client.BatchV1Api()
-    job_finished = False
-    jobs = api.list_namespaced_job('default')
-    while (not job_finished) and \
-            any(job.metadata.name == jobname for job in jobs.items):
-        time.sleep(1)
-        jobs = api.list_namespaced_job('default')
-        for job in jobs.items:
-            if job.metadata.name == jobname:
-                logging.info(f"Job with name:[{jobname}] found, wait untill end")
-                if job.status.succeeded == 1:
-                    job_finished = True
-                    logging.info(f"Job with name:[{jobname}] end sucessful")
 
 
 @kopf.on.field('otus.homework', 'v1', 'mysqls', field='spec.password')
@@ -91,31 +91,32 @@ def mysql_on_create(body, spec, **kwargs):
     logging.info(f"A handler is called with body: {body}")
 
     # Генерируем JSON манифесты для деплоя
-    persistent_volume = render_template('mysql-pv.yml.j2', 
-            {'name': name, 'storage_size': storage_size})
-    persistent_volume_claim = render_template('mysql-pvc.yml.j2', 
-            {'name': name, 'storage_size': storage_size})
-    service = render_template('mysql-service.yml.j2', 
-            {'name': name})
-    deployment = render_template('mysql-deployment.yml.j2', 
-            {'name': name,
-             'image': image,
-             'password': password,
-             'database': database
-            })
-    restore_job = render_template('restore-job.yml.j2', 
-            {'name': name,
-             'image': image,
-             'password': password,
-             'database': database
-            })
+    persistent_volume = render_template('mysql-pv.yml.j2',
+                                        {'name': name,
+                                         'storage_size': storage_size})
+    persistent_volume_claim = render_template('mysql-pvc.yml.j2',
+                                              {'name': name,
+                                               'storage_size': storage_size})
+    service = render_template('mysql-service.yml.j2', {'name': name})
+
+    deployment = render_template('mysql-deployment.yml.j2', {
+        'name': name,
+        'image': image,
+        'password': password,
+        'database': database})
+    restore_job = render_template('restore-job.yml.j2', {
+        'name': name,
+        'image': image,
+        'password': password,
+        'database': database})
 
     # Определяем, что созданные ресурсы являются дочерними к управляемому CustomResource:
     kopf.append_owner_reference(persistent_volume, owner=body)
-    kopf.append_owner_reference(persistent_volume_claim, owner=body)
+    kopf.append_owner_reference(persistent_volume_claim, owner=body)  # addopt
     kopf.append_owner_reference(service, owner=body)
     kopf.append_owner_reference(deployment, owner=body)
     kopf.append_owner_reference(restore_job, owner=body)
+    # ^ Таким образом при удалении CR удалятся все, связанные с ним pv,pvc,svc, deployments
 
     api = kubernetes.client.CoreV1Api()
     # Создаем mysql PV:
@@ -124,6 +125,7 @@ def mysql_on_create(body, spec, **kwargs):
     api.create_namespaced_persistent_volume_claim('default', persistent_volume_claim)
     # Создаем mysql SVC:
     api.create_namespaced_service('default', service)
+
     # Создаем mysql Deployment:
     api = kubernetes.client.AppsV1Api()
     api.create_namespaced_deployment('default', deployment)
@@ -146,7 +148,7 @@ def mysql_on_create(body, spec, **kwargs):
         pass
 
     # Пытаемся восстановиться из backup
-    status_recovery_job = "unknown"
+    status_restore_job = "unknown"
     if not new_pvc_created:
         restore_job_name = restore_job['metadata']['name']
         logging.info(f"Start restore job name:[{restore_job_name}]")
@@ -155,14 +157,14 @@ def mysql_on_create(body, spec, **kwargs):
             api.create_namespaced_job('default', restore_job)
             wait_until_job_end(restore_job_name)
             logging.info(f"End restore job name:[{restore_job_name}]")
-            status_recovery_job = "successful"
+            status_restore_job = "successful"
         except kubernetes.client.ApiException:
             logging.info(f"Fail restore job name:[{restore_job_name}]")
-            status_recovery_job = "failed"
+            status_restore_job = "failed"
     else:
-        status_recovery_job = "previous backup not found"
+        status_restore_job = "previous backup not found"
 
-    return {'recoveryJob': str(status_recovery_job)}
+    return {'restoreJob': str(status_restore_job)}
 
 @kopf.on.delete('otus.homework', 'v1', 'mysqls')
 def delete_object_make_backup(body, **_):
@@ -172,6 +174,7 @@ def delete_object_make_backup(body, **_):
     database = body['spec']['database']
 
     delete_success_jobs(name)
+
     # Cоздаем backup job:
     api = kubernetes.client.BatchV1Api()
     backup_job = render_template('backup-job.yml.j2', {

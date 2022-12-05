@@ -15,5 +15,5 @@ spec:
       serviceAccountName: mysql-operator
       containers:
         - name: operator
-          image: "vradnit/mysql-operator:0.4"
+          image: "vradnit/mysql-operator:0.6"
           imagePullPolicy: "Always"
