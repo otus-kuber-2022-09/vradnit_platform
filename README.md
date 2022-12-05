@@ -404,6 +404,7 @@ vradnit Platform repository
     со списком всех "обязательных" полей
 
 4.  В директории "kubernetes-operators/build/templates/" сохранены используемые шаблоны:
+
         kubernetes-operators/build/templates/backup-pv.yml.j2
         kubernetes-operators/build/templates/mysql-pvc.yml.j2
         kubernetes-operators/build/templates/mysql-deployment.yml.j2
@@ -432,6 +433,7 @@ vradnit Platform repository
     "kubernetes-operators/build/Dockerfile"
 
 7.  Для деплоя оператора в кластер kubernetes созданы манифесты:
+
         kubernetes-operators/deploy/deploy-operator.yml
         kubernetes-operators/deploy/service-account.yml
         kubernetes-operators/deploy/role.yml
@@ -440,25 +442,25 @@ vradnit Platform repository
 8.  Для тестирования загрузки тестовых данных написан скрипт:
     "kubernetes-operators/build/testdata.sh"
     пример использования:
+
         ./testdata.sh [upload|show] [password]
 
 9.  После итераций "создание"->"удаление(+backup)"->"создание(+recovery from backup)"
     Состояние джоб:
+
         kubectl get jobs
         NAME                         COMPLETIONS   DURATION   AGE
         backup-mysql-instance-job    1/1           5s         2m31s
         restore-mysql-instance-job   1/1           108s       110s
 
     Состояние БД:
+
         ./testdata.sh show otuspassword
-        +----+-------------+
         | id | name        |
-        +----+-------------+
         |  1 | some data-1 |
         |  2 | some data-2 |
         |  3 | some data-3 |
         |  4 | some data-4 |
-        +----+-------------+
 
 10. Для того, чтобы оператор стал "писать" в "status subresource"
     в спецификации CRD было добавлено описание поля "status"
