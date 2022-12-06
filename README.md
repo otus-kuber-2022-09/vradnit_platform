@@ -389,3 +389,40 @@ vradnit Platform repository
 
     установка для окружения "hipster-shop":
     kubectl kustomize kubernetes-templating/kustomize/overrides/hipster-shop | kubectl apply -f -
+
+
+
+
+# ДЗ-8 Kubernetes-monitoring
+
+1.  Используя образы "nginxinc/nginx-unprivileged:1.22-alpine" и
+    "nginx/nginx-prometheus-exporter:0.11.0" созданы манифесты:
+
+        kubernetes-monitoring/configmap.yaml
+        kubernetes-monitoring/deployment.yaml
+        kubernetes-monitoring/service.yaml
+
+    ( для кастомизации кофигурации nginx используется configMap )
+
+2.  С помощью helm устанавливаем "kube-prometheus-stack":
+
+        helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+        helm install --upgrade kube-prometheus -n monitoring prometheus-community/kube-prometheus-stack
+
+    Для того, чтобы найти какую метку использовать для servicemonitor выполняем:
+
+        kubectl get prometheus -n monitoring kube-prometheus-kube-prome-prometheus -o jsonpath='{ .spec.serviceMonitorSelector }'
+        {"matchLabels":{"release":"kube-prometheus"}}
+
+3.  Создаем манифест servicemonitor:
+
+        kubernetes-monitoring/servicemonitor.yaml
+
+4.  Для визуализации метрик использовался стандартный dashboard:
+
+        https://raw.githubusercontent.com/nginxinc/nginx-prometheus-exporter/main/grafana/dashboard.json
+
+    Скрин дашборда сохранен в:
+
+        kubernetes-monitoring/grafana/nginx.png
+
