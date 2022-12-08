@@ -389,3 +389,130 @@ vradnit Platform repository
 
     установка для окружения "hipster-shop":
     kubectl kustomize kubernetes-templating/kustomize/overrides/hipster-shop | kubectl apply -f -
+
+
+
+
+# ДЗ-10 Kubernetes-operators
+
+1.  С помощью minikube создан однонодовый кластер k8s
+
+2.  Создан CustomResourceDefinition "mysqls.otus.homework" в "kubernetes-operators/deploy/crd.yml",
+    а также соответствующий ему CR (customResource) "kind: MySQL" в "kubernetes-operators/deploy/cr.yml"
+
+3.  Для того, чтобы все поля "описанные" в CustomResourceDefinition были "обязательными" в схему было добавлено поле "required"
+    со списком всех "обязательных" полей
+
+4.  В директории "kubernetes-operators/build/templates/" сохранены используемые шаблоны:
+
+        kubernetes-operators/build/templates/backup-pv.yml.j2
+        kubernetes-operators/build/templates/mysql-pvc.yml.j2
+        kubernetes-operators/build/templates/mysql-deployment.yml.j2
+        kubernetes-operators/build/templates/mysql-pv.yml.j2
+        kubernetes-operators/build/templates/mysql-service.yml.j2
+        kubernetes-operators/build/templates/backup-job.yml.j2
+        kubernetes-operators/build/templates/restore-job.yml.j2
+        kubernetes-operators/build/templates/backup-pvc.yml.j2
+
+5.  В результате выполнения шагов ДЗ, используя python + библиотеку kopf, был создан kubernetes-operator
+    "kubernetes-operators/build/mysql-operator.py"
+    Diff file (для понимания, что изменено) "kubernetes-operators/build/mysql-operator.diff"
+
+    В кратце:
+    . для обеспечения логгирование добавлен модуль "logging" ( print заменен на logging )
+    . в "backup_pvc" и в "backup-pv" добавлена переменная "storage_size" ( требование шиблонов )
+    . в функцию "delete_success_jobs" добавлено удаление "restore-job" ( + change-password-job )
+    . в функцию "delete_object_make_backup" добавлено удаление "mysql-pv", т.к. не смотря на
+      "kopf.append_owner_reference(persistent_volume, owner=body)" эта сущность не удаляется при удалении CR ( несмотря на наличие adopt )
+    . изменена логика восстановления из бекапа:
+    .. пропуск восстановления если бекапов нет
+    .. ожидание выполения джобы
+
+6.  Оператор собран в образ "vradnit/mysql-operator:0.6" и запушен в dockerhub
+    Для сборки оператора в образ использовался Dockerfile:
+    "kubernetes-operators/build/Dockerfile"
+
+7.  Для деплоя оператора в кластер kubernetes созданы манифесты:
+
+        kubernetes-operators/deploy/deploy-operator.yml
+        kubernetes-operators/deploy/service-account.yml
+        kubernetes-operators/deploy/role.yml
+        kubernetes-operators/deploy/role-binding.yml
+
+8.  Для тестирования загрузки тестовых данных написан скрипт:
+    "kubernetes-operators/build/testdata.sh"
+    пример использования:
+
+        ./testdata.sh [upload|show] [password]
+
+9.  После итераций "создание"->"удаление(+backup)"->"создание(+recovery from backup)"
+    Состояние джоб:
+
+        kubectl get jobs
+        NAME                         COMPLETIONS   DURATION   AGE
+        backup-mysql-instance-job    1/1           5s         2m31s
+        restore-mysql-instance-job   1/1           108s       110s
+
+    Состояние БД:
+
+        ./testdata.sh show otuspassword
+        | id | name        |
+        |  1 | some data-1 |
+        |  2 | some data-2 |
+        |  3 | some data-3 |
+        |  4 | some data-4 |
+
+10. Для того, чтобы оператор стал "писать" в "status subresource"
+    в спецификации CRD было добавлено описание поля "status"
+
+            status:
+              type: object
+              x-kubernetes-preserve-unknown-fields: true
+
+    а для вывода "статуса" выполнения "restore-job" в участок кода добавлена переменная "status_restore_job",
+    в которую сохраняется "статус" выполения джобы, а функция "mysql_on_create" возвращает"
+    " return {'restoreJob': str(status_restore_job)} "
+
+    результат:
+
+        status:
+          kopf:
+            progress: {}
+          mysql_on_create:
+            restoreJob: successful
+
+11. Для реализации логики изменения пароля в "mysql" при его изменении в CR
+    Добавлена функция "password_changed(body, old, new, **_)"
+    с декоратором "@kopf.on.field('otus.homework', 'v1', 'mysqls', field='spec.password')"
+    Функция срабатывает при изменении field='spec.password' в CR,
+    при этом в "old" содержится "старый пароль", а в "new" новый пароль
+
+    Для ислючения запуска джобы с пустыми значениями "old" или "new" ( допустим при первом deploе "old" пустой )
+    используется -> "if old_password and new_password"
+
+    Для запуска джобы создан темплейт манифеста "change-password-job.yml.j2", его задача выполнить команду смены пароля:
+        mysql -u root -h {{ name }} -p{{ old_password }} mysql -e "ALTER USER root IDENTIFIED BY '{{ new_password }}', 'root'@'localhost' IDENTIFIED BY '{{ new_password }}'"
+
+    Перед запуском "джобы смены пароля", предыдущая аналогичная джоба удаляется
+
+    Пример лога оператора при изменении пароля через CR:
+
+        [2022-12-05 18:35:26,596] kopf.objects         [INFO    ] [default/mysql-instance] Handler 'password_changed/spec.password' succeeded.
+        [2022-12-05 18:35:26,597] kopf.objects         [INFO    ] [default/mysql-instance] Updating is processed: 1 succeeded; 0 failed.
+        [2022-12-05 18:37:09,677] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] found, wait untill end
+        [2022-12-05 18:37:10,693] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] found, wait untill end
+        [2022-12-05 18:37:11,708] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] found, wait untill end
+        [2022-12-05 18:37:12,724] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] found, wait untill end
+        [2022-12-05 18:37:13,742] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] found, wait untill end
+        [2022-12-05 18:37:14,759] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] found, wait untill end
+        [2022-12-05 18:37:14,760] root                 [INFO    ] Job with name:[change-password-mysql-instance-job] end sucessful
+        [2022-12-05 18:37:14,761] kopf.objects         [INFO    ] [default/mysql-instance] Handler 'password_changed/spec.password' succeeded.
+        [2022-12-05 18:37:14,762] kopf.objects         [INFO    ] [default/mysql-instance] Updating is processed: 1 succeeded; 0 failed.
+
+    При этом статус джоб:
+
+        kubectl get jobs
+        NAME                                 COMPLETIONS   DURATION   AGE
+        backup-mysql-instance-job            1/1           5s         42m
+        change-password-mysql-instance-job   1/1           5s         3m2s
+        restore-mysql-instance-job           1/1           23s        42m
