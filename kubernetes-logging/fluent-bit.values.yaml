@@ -23,10 +23,29 @@ config:
     [INPUT]
         Name tail
         Path /var/log/containers/*.log
+        Exclude_Path /var/log/containers/*_microservices-demo_*.log,/var/log/containers/*_ingress-nginx_*.log
         multiline.parser docker, cri
         Tag kube.*
         Mem_Buf_Limit 5MB
-        Skip_Long_Lines On
+        Skip_Long_Lines Off
+        Refresh_Interval 10
+
+    [INPUT]
+        Name tail
+        Path /var/log/containers/*_microservices-demo_*.log
+        multiline.parser docker, cri
+        Tag microservices-demo.*
+        Mem_Buf_Limit 5MB
+        Skip_Long_Lines Off
+        Refresh_Interval 10
+
+    [INPUT]
+        Name tail
+        Path /var/log/containers/*_ingress-nginx_*.log
+        multiline.parser docker, cri
+        Tag ingress-nginx.*
+        Mem_Buf_Limit 5MB
+        Skip_Long_Lines Off
         Refresh_Interval 10
 
     [INPUT]
@@ -41,14 +60,63 @@ config:
   filters: |
     [FILTER]
         Name kubernetes
-        Match kube.*
+        Match microservices-demo.*
+        Kube_Tag_Prefix microservices-demo.var.log.containers
         Merge_Log On
         Keep_Log Off
         K8S-Logging.Parser On
         K8S-Logging.Exclude On
 
+    [FILTER]
+        Name kubernetes
+        Match ingress-nginx.*
+        Kube_Tag_Prefix ingress-nginx.var.log.containers
+        Merge_Log On
+        Keep_Log Off
+        K8S-Logging.Parser On
+        K8S-Logging.Exclude On
+
+    [FILTER]
+        Name kubernetes
+        Match kube.*
+        Merge_Log Off
+        K8S-Logging.Parser On
+        K8S-Logging.Exclude On
+
   ## https://docs.fluentbit.io/manual/pipeline/outputs
   outputs: |
+    [OUTPUT]
+        Name es
+        Match microservices-demo.*
+        Host elasticsearch-master
+        Logstash_Format On
+        Logstash_Prefix microservices-demo
+        Retry_Limit False
+        tls On
+        tls.verify Off
+        HTTP_User ${FLUENT_ELASTICSEARCH_USER}
+        HTTP_Passwd ${FLUENT_ELASTICSEARCH_PASSWD}
+        Replace_Dots On
+        Suppress_Type_Name On
+        #Trace_Output On
+        #Trace_Error On
+
+    [OUTPUT]
+        Name es
+        Match ingress-nginx.*
+        Host elasticsearch-master
+        Logstash_Format On
+        Logstash_Prefix ingress-nginx
+        Retry_Limit False
+        tls On
+        tls.verify Off
+        HTTP_User ${FLUENT_ELASTICSEARCH_USER}
+        HTTP_Passwd ${FLUENT_ELASTICSEARCH_PASSWD}
+        Replace_Dots On
+        Suppress_Type_Name On
+        #Trace_Output On
+        #Trace_Error On
+
     [OUTPUT]
         Name es
         Match kube.*
@@ -62,8 +130,8 @@ config:
         HTTP_Passwd ${FLUENT_ELASTICSEARCH_PASSWD}
         Replace_Dots On
         Suppress_Type_Name On
-        Trace_Output On
-        Trace_Error On
+        #Trace_Output On
+        #Trace_Error On
 
     [OUTPUT]
         Name es
