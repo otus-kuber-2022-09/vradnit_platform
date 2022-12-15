@@ -1,0 +1,19 @@
+repositories:
+  - name: deliveryhero
+    url: https://charts.deliveryhero.io
+
+helmDefaults:
+  wait: true
+  timeout: 300
+  createNamespace: true
+
+releases:
+  - name: k8s-event-logger
+    labels:
+      release: k8s-event-logger
+    namespace: observability
+    chart: deliveryhero/k8s-event-logger
+    version: 1.1.2
+    values:
+    - env:
+        KUBERNETES_API_URL: https://kubernetes.default.svc:443

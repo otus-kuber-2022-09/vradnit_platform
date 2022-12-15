@@ -1,0 +1,111 @@
+env:
+- name: FLUENT_ELASTICSEARCH_PASSWD
+  valueFrom:
+    secretKeyRef:
+      key: password
+      name: elasticsearch-master-credentials
+- name: FLUENT_ELASTICSEARCH_USER
+  valueFrom:
+    secretKeyRef:
+      key: username
+      name: elasticsearch-master-credentials
+
+tolerations:
+- key: node-role
+  operator: Equal
+  value: infra
+  effect: NoSchedule
+
+
+config:
+  ## https://docs.fluentbit.io/manual/pipeline/inputs
+  inputs: |
+    [INPUT]
+        Name tail
+        Path /var/log/containers/*.log
+        multiline.parser docker, cri
+        Tag kube.*
+        Mem_Buf_Limit 5MB
+        Skip_Long_Lines On
+        Refresh_Interval 10
+
+    [INPUT]
+        Name systemd
+        Tag host.*
+        #Systemd_Filter _SYSTEMD_UNIT=kubelet.service
+        #Systemd_Filter _SYSTEMD_UNIT=crio.service
+        #Systemd_Filter _SYSTEMD_UNIT=systemd-logind.service
+        Read_From_Tail On
+
+  ## https://docs.fluentbit.io/manual/pipeline/filters
+  filters: |
+    [FILTER]
+        Name kubernetes
+        Match kube.*
+        Merge_Log On
+        Keep_Log Off
+        K8S-Logging.Parser On
+        K8S-Logging.Exclude On
+
+  ## https://docs.fluentbit.io/manual/pipeline/outputs
+  outputs: |
+    [OUTPUT]
+        Name es
+        Match kube.*
+        Host elasticsearch-master
+        Logstash_Format On
+        Logstash_Prefix radnit-kube
+        Retry_Limit False
+        tls On
+        tls.verify Off
+        HTTP_User ${FLUENT_ELASTICSEARCH_USER}
+        HTTP_Passwd ${FLUENT_ELASTICSEARCH_PASSWD}
+        Replace_Dots On
+        Suppress_Type_Name On
+        Trace_Output On
+        Trace_Error On
+
+    [OUTPUT]
+        Name es
+        Match host.*
+        Host elasticsearch-master
+        Logstash_Format On
+        Logstash_Prefix radnit-host
+        Retry_Limit False
+        tls On
+        tls.verify Off
+        HTTP_User ${FLUENT_ELASTICSEARCH_USER}
+        HTTP_Passwd ${FLUENT_ELASTICSEARCH_PASSWD}
+        Replace_Dots On
+        Suppress_Type_Name On
+
+
+daemonSetVolumeMounts:
+  - name: varlog
+    mountPath: /var/log
+  - name: varlibdockercontainers
+    mountPath: /var/lib/docker/containers
+    readOnly: true
+  - name: etcmachineid
+    mountPath: /etc/machine-id
+    readOnly: true
+  - name: systemdlog
+    mountPath: /run/log
+    readOnly: true
+
+
+daemonSetVolumes:
+  - name: varlog
+    hostPath:
+      path: /var/log
+  - name: varlibdockercontainers
+    hostPath:
+      path: /var/lib/docker/containers
+  - name: etcmachineid
+    hostPath:
+      path: /etc/machine-id
+      type: File
+  - name: systemdlog
+    hostPath:
+      path: /run/log
+

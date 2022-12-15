@@ -1,0 +1,15 @@
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: "letsencrypt-production"
+      cert-manager.io/acme-challenge-type: http01
+  hosts:
+    - host: kibana.radnit.ru
+      paths:
+        - path: /
+  tls:
+  - secretName: kibana.radnit.ru
+    hosts:
+    - kibana.radnit.ru

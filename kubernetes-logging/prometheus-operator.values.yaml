@@ -1,0 +1,110 @@
+alertmanager:
+  enabled: true
+
+  alertmanagerSpec:
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+              - k8s-m-1
+              - k8s-m-2
+              - k8s-m-3
+
+    tolerations:
+    - key: node-role
+      operator: Equal
+      value: infra
+      effect: NoSchedule
+
+grafana:
+  enabled: true
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: "letsencrypt-production"
+      cert-manager.io/acme-challenge-type: http01
+    hosts:
+    - grafana-k8s.radnit.ru
+    path: /
+    tls:
+    - secretName: grafana-k8s.radnit.ru
+      hosts:
+      - grafana-k8s.radnit.ru
+
+  adminPassword: null
+
+  additionalDataSources:
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki-stack:3100
+    version: 1
+    isDefault: false
+
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+      - name: 'default'
+        orgId: 1
+        folder: ''
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/default
+ 
+  dashboards:
+    default:
+      elastic:
+        gnetId: 4358
+        revision: 1
+        datasource: Prometheus
+
+  tolerations:
+  - key: node-role
+    operator: Equal
+    value: infra
+    effect: NoSchedule
+
+  affinity:
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - k8s-m-1
+            - k8s-m-2
+            - k8s-m-3
+
+prometheus:
+  enabled: true
+  prometheusSpec:
+    tolerations:
+    - key: node-role
+      operator: Equal
+      value: infra
+      effect: NoSchedule
+
+    affinity:
+      nodeAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          nodeSelectorTerms:
+          - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+              - k8s-m-1
+              - k8s-m-2
+              - k8s-m-3
+
+  retention: 7d
+  remoteWrite: []
