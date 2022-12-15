@@ -1,0 +1,31 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+data:
+  index.html: |
+    <!DOCTYPE html>
+    <html lang="en">
+
+    <head>
+      <meta name="description" content="eco" />
+      <meta charset="utf-8">
+      <title>radnit</title>
+    </head>
+
+    <body>
+    </body>
+    </html>
+  000_status.conf: |
+    server {
+      listen 127.0.0.1:50080;
+      server_name _;
+      keepalive_timeout 0;
+      #access_log off;
+      allow 127.0.0.1;
+      deny all;
+
+      location /basic_status {
+        stub_status on;
+      }
+    }
