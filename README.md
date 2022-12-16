@@ -523,11 +523,10 @@ vradnit Platform repository
    добавляем для fluent-bit реквизиты доступа ( через переменные окружения FLUENT_ELASTICSEARCH_USER, FLUENT_ELASTICSEARCH_PASSWD )
 
    
-6. Решение проблем с логами из fluent-bit в elasticsearch:
+6. Решение проблем с логами из fluent-bit в elasticsearch.
 
 6.1. Проблем с дублированием полей "time" и "timestamp" не обнаружено, вероятнее всего это "старая проблема" fluent-bit.
-     Пример лога приложения со "всеми полями" приведен в:
-         kubernetes-logging/example-elastic-json
+     Пример лога приложения со "всеми полями" приведен в: kubernetes-logging/example-elastic-json
 
      Возможная причина данной проблемы: при merge JSON лога приложений в структуру лога, fluent-bit формировал лог с дублированными полями. 
      Данная проблема пофикшена в патче:
@@ -540,10 +539,8 @@ vradnit Platform repository
      а "Types are deprecated in APIs in v7.0. This options is for v7.0 or later"
 
 6.3. Логи от приложений из неймспесов "ingress-nginx" и "microservices-demo" выделены в отдельные индексы,
-     иначе возникала каша из логов
-
-     Все остальные логи пишутся в индекс "radnit-kube"
-
+     иначе возникала каша из логов.
+     Все остальные логи пишутся в индекс "radnit-kube".
      При "разделении" логов на разные неймспейсы, обнаружена проблема с отсутстием метаинформации в итоговых логах от "ingress-nginx" и "microservices-demo".
      Проблема решена добавлением опций Kube_Tag_Prefix.
    
@@ -568,12 +565,15 @@ vradnit Platform repository
         kubernetes-logging/prometheus-elasticsearch-exporter.values.yaml
 
    Также в values для grafana добавлено:
-   создание ingress "https://grafana-k8s.radnit.ru"
-   создание дашборда для "elasticsearch-exporter"
-   автогенерация пароля для "admin" при рестарте ( плохой дефолный пароль, а графана доступна снаружи )
 
-   В values для "prometheus-elasticsearch-exporter" добавлены реквизиты доступа к elasticsearch, а также создание 
-   servicemonitor c "правильной" меткой "release: kube-prometheus"
+       создание ingress "https://grafana-k8s.radnit.ru"
+       создание дашборда для "elasticsearch-exporter"
+       автогенерация пароля для "admin" при рестарте ( плохой дефолный пароль, а графана доступна снаружи )
+
+   В values для "prometheus-elasticsearch-exporter":
+
+       добавлены реквизиты доступа к elasticsearch, а также создание 
+       servicemonitor c "правильной" меткой "release: kube-prometheus"
 
    Установка:
 
@@ -581,6 +581,7 @@ vradnit Platform repository
 
 
 8. После "экспериментов" по "убиванию" кластера elasticsearch, решено добавить необходимы алертинг при:
+
         elasticsearch_cluster_health_number_of_nodes{} < 3
         (elasticsearch_jvm_memory_used_bytes{area="heap"} / elasticsearch_jvm_memory_max_bytes{area="heap"}) > 0.9
         elasticsearch_cluster_health_number_of_pending_tasks{} > 0
@@ -648,6 +649,7 @@ vradnit Platform repository
     Проверяем, что datasource Loki появился в "https://grafana-k8s.radnit.ru"
 
     Проверяем, как установились компоненты Loki на нодах кластера:
+
         kubectl get pods -o wide | grep loki 
         loki-stack-0                                                      1/1     Running   0               2d16h   10.244.133.180   k8s-m-1   <none>           <none>
         loki-stack-promtail-6flb4                                         1/1     Running   0               2d16h   10.244.133.181   k8s-m-1   <none>           <none>
@@ -674,9 +676,11 @@ vradnit Platform repository
      Создаем helmfile "kubernetes-logging/helmfile-k8s-event-logger.yaml"
 
      Установка:
+
         helmfile -f helmfile-k8s-event-logger.yaml apply
 
      Проверяем что events в виде логов видны и в kibana и в loki:
+
         {"metadata":{"name":"fluent-bit-m4sqs.1730fefc75a1a367","namespace":"observability","uid":"47d42734-5bd3-4bf4-9a13-683437137f7c",
         "resourceVersion":"19918249","creationTimestamp":"2022-12-15T14:50:22Z","managedFields":[{"manager":"kubelet","operation":"Update",
         "apiVersion":"v1","time":"2022-12-15T14:50:22Z","fieldsType":"FieldsV1","fieldsV1":{"f:count":{},"f:firstTimestamp":{},"f:involvedObject":{},
@@ -695,6 +699,7 @@ vradnit Platform repository
         kubernetes-logging/audit/audit-policy.yaml
 
     Манифест скопирован на все мастер ноды в:
+
         /etc/kubernetes/audit-policy.yaml
 
     В манифесты всех kube-apiserver были добавлены параметры:
@@ -766,6 +771,7 @@ vradnit Platform repository
         helmfile -l release=fluent-bit -f helmfile-efk.yaml apply
 
     Пример лога приведен в:
+
         kubernetes-logging/fluent-bit_radnit-host_log.json
 
 
