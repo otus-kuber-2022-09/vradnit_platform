@@ -434,7 +434,7 @@ vradnit Platform repository
 1. Создали кластер из 4х нод
     на 3х мастерах удалили taint "node-role.kubernetes.io/master:NoSchedule"
     и установили taint "node-role=infra:NoSchedule":
-
+        
         kubectl get nodes 
         NAME      STATUS   ROLES                  AGE     VERSION
         k8s-m-1   Ready    control-plane,worker   74d     v1.24.6
@@ -474,20 +474,20 @@ vradnit Platform repository
 3. Установка ingress-nginx, cert-manager:
    Для установки будем использовать helmfile и необходимые values файлы, с нужными tolerations, nodeaffinity, podAntiAffinity и replicas:
 
-       kubernetes-logging/helmfile-ingress.yaml
-       kubernetes-logging/ingress-nginx.values.yaml
+        kubernetes-logging/helmfile-ingress.yaml
+        kubernetes-logging/ingress-nginx.values.yaml
 
    запускаем установку:
 
-       helmfile -f helmfile-ingress.yaml apply   
+        helmfile -f helmfile-ingress.yaml apply   
 
    проверяем, что ingress-nginx запустился на "infra" нодах:
 
-       k get pods -n ingress-nginx -o wide 
-       NAME                                        READY   STATUS    RESTARTS   AGE   IP               NODE      NOMINATED NODE   READINESS GATES
-       ingress-nginx-controller-7f47fdb549-ddw4p   1/1     Running   0          37h   10.244.133.189   k8s-m-1   <none>           <none>
-       ingress-nginx-controller-7f47fdb549-dfpwl   1/1     Running   0          37h   10.244.61.214    k8s-m-2   <none>           <none>
-       ingress-nginx-controller-7f47fdb549-sh4ln   1/1     Running   0          37h   10.244.34.58     k8s-m-3   <none>           <none>
+        kubectl get pods -n ingress-nginx -o wide 
+        NAME                                        READY   STATUS    RESTARTS   AGE   IP               NODE      NOMINATED NODE   READINESS GATES
+        ingress-nginx-controller-7f47fdb549-ddw4p   1/1     Running   0          37h   10.244.133.189   k8s-m-1   <none>           <none>
+        ingress-nginx-controller-7f47fdb549-dfpwl   1/1     Running   0          37h   10.244.61.214    k8s-m-2   <none>           <none>
+        ingress-nginx-controller-7f47fdb549-sh4ln   1/1     Running   0          37h   10.244.34.58     k8s-m-3   <none>           <none>
 
 4. Установка elasticsearch, kibana, fluent-bit:
    Для установки будем использовать helmfile и необходимые values файлы, с нужными tolerations и nodeaffinity.
@@ -658,32 +658,32 @@ vradnit Platform repository
 12.  Создание кастомного дашборда для мониторинга ingress-nginx в grafana + loki.
      Итоговый дашборд сохранен в:
 
-         kubernetes-logging/nginx-ingress.json
+        kubernetes-logging/nginx-ingress.json
 
      Добавляем "автосоздание" нашего дашборда в grafana через "kubernetes-logging/helmfile-kube-prometheus.yaml"
      Применяем изменения для kube-prometheus:
 
-         helmfile -l release=kube-prometheus -f helmfile-kube-prometheus.yaml apply
+        helmfile -l release=kube-prometheus -f helmfile-kube-prometheus.yaml apply
 
      Скрины дашборда приложены в:
 
-         kubernetes-logging/example-img/nginx-ingress-1.png
-         kubernetes-logging/example-img/nginx-ingress-2.png
+        kubernetes-logging/example-img/nginx-ingress-1.png
+        kubernetes-logging/example-img/nginx-ingress-2.png
 
 13.  Установка "k8s-event-logger".
      Создаем helmfile "kubernetes-logging/helmfile-k8s-event-logger.yaml"
 
      Установка:
-         helmfile -f helmfile-k8s-event-logger.yaml apply
+        helmfile -f helmfile-k8s-event-logger.yaml apply
 
      Проверяем что events в виде логов видны и в kibana и в loki:
-         {"metadata":{"name":"fluent-bit-m4sqs.1730fefc75a1a367","namespace":"observability","uid":"47d42734-5bd3-4bf4-9a13-683437137f7c",
-          "resourceVersion":"19918249","creationTimestamp":"2022-12-15T14:50:22Z","managedFields":[{"manager":"kubelet","operation":"Update",
-          "apiVersion":"v1","time":"2022-12-15T14:50:22Z","fieldsType":"FieldsV1","fieldsV1":{"f:count":{},"f:firstTimestamp":{},"f:involvedObject":{},
-          "f:lastTimestamp":{},"f:message":{},"f:reason":{},"f:source":{"f:component":{},"f:host":{}},"f:type":{}}}]},"involvedObject":{"kind":"Pod",
-          "namespace":"observability","name":"fluent-bit-m4sqs","uid":"5ff4c0fc-b74a-4902-94f4-b630490323d7","apiVersion":"v1","resourceVersion":"19918229",
-          "fieldPath":"spec.containers{fluent-bit}"},"reason":"Started","message":"Started container fluent-bit","source":{"component":"kubelet","host":"k8s-m-3"},
-          "firstTimestamp":"2022-12-15T14:50:22Z","lastTimestamp":"2022-12-15T14:50:22Z","count":1,"type":"Normal","eventTime":null,"reportingComponent":"","reportingInstance":""}
+        {"metadata":{"name":"fluent-bit-m4sqs.1730fefc75a1a367","namespace":"observability","uid":"47d42734-5bd3-4bf4-9a13-683437137f7c",
+        "resourceVersion":"19918249","creationTimestamp":"2022-12-15T14:50:22Z","managedFields":[{"manager":"kubelet","operation":"Update",
+        "apiVersion":"v1","time":"2022-12-15T14:50:22Z","fieldsType":"FieldsV1","fieldsV1":{"f:count":{},"f:firstTimestamp":{},"f:involvedObject":{},
+        "f:lastTimestamp":{},"f:message":{},"f:reason":{},"f:source":{"f:component":{},"f:host":{}},"f:type":{}}}]},"involvedObject":{"kind":"Pod",
+        "namespace":"observability","name":"fluent-bit-m4sqs","uid":"5ff4c0fc-b74a-4902-94f4-b630490323d7","apiVersion":"v1","resourceVersion":"19918229",
+        "fieldPath":"spec.containers{fluent-bit}"},"reason":"Started","message":"Started container fluent-bit","source":{"component":"kubelet","host":"k8s-m-3"},
+        "firstTimestamp":"2022-12-15T14:50:22Z","lastTimestamp":"2022-12-15T14:50:22Z","count":1,"type":"Normal","eventTime":null,"reportingComponent":"","reportingInstance":""}
 
 14. Audit logging.
     За "источик" манифеста "kind: Policy" для тестирования работы "audit loggin" kube-apiserver был взят кусок из скрипта:
