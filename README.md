@@ -463,13 +463,13 @@ vradnit Platform repository
         checkoutservice-b5545dc95-n8lwf          1/1     Running   0             23m   10.244.196.78   k8s-w-1   <none>           <none>
         currencyservice-f7b9cc-2jdhn             1/1     Running   0             23m   10.244.196.83   k8s-w-1   <none>           <none>
         emailservice-59954c6bff-vppt9            1/1     Running   0             23m   10.244.196.75   k8s-w-1   <none>           <none>
-	frontend-75f46fcfb7-9d54k                1/1     Running   0             23m   10.244.196.77   k8s-w-1   <none>           <none>
-	loadgenerator-7d88bdbbf8-ncp87           1/1     Running   5 (21m ago)   23m   10.244.196.74   k8s-w-1   <none>           <none>
-	paymentservice-556f7b5695-z49r8          1/1     Running   0             23m   10.244.196.80   k8s-w-1   <none>           <none>
-	productcatalogservice-78854d86ff-kk9nf   1/1     Running   0             23m   10.244.196.84   k8s-w-1   <none>           <none>
-	recommendationservice-b8f974fc-lcgs5     1/1     Running   0             23m   10.244.196.81   k8s-w-1   <none>           <none>
-	redis-cart-745456dd9b-xgrnn              1/1     Running   0             23m   10.244.196.82   k8s-w-1   <none>           <none>
-	shippingservice-7b5695bdb5-2hp8t         1/1     Running   0             23m   10.244.196.79   k8s-w-1   <none>           <none>
+        frontend-75f46fcfb7-9d54k                1/1     Running   0             23m   10.244.196.77   k8s-w-1   <none>           <none>
+        loadgenerator-7d88bdbbf8-ncp87           1/1     Running   5 (21m ago)   23m   10.244.196.74   k8s-w-1   <none>           <none>
+        paymentservice-556f7b5695-z49r8          1/1     Running   0             23m   10.244.196.80   k8s-w-1   <none>           <none>
+        productcatalogservice-78854d86ff-kk9nf   1/1     Running   0             23m   10.244.196.84   k8s-w-1   <none>           <none>
+        recommendationservice-b8f974fc-lcgs5     1/1     Running   0             23m   10.244.196.81   k8s-w-1   <none>           <none>
+        redis-cart-745456dd9b-xgrnn              1/1     Running   0             23m   10.244.196.82   k8s-w-1   <none>           <none>
+        shippingservice-7b5695bdb5-2hp8t         1/1     Running   0             23m   10.244.196.79   k8s-w-1   <none>           <none>
 
 3. Установка ingress-nginx, cert-manager:
    Для установки будем использовать helmfile и необходимые values файлы, с нужными tolerations, nodeaffinity, podAntiAffinity и replicas:
