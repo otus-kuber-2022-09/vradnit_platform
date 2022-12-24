@@ -1,0 +1,36 @@
+repositories:
+  - name: elastic
+    url: https://helm.elastic.co
+  - name: fluent
+    url: https://fluent.github.io/helm-charts
+
+helmDefaults:
+  wait: true
+  timeout: 900
+  createNamespace: true
+
+releases:
+  - name: elasticsearch
+    labels:
+      release: elasticsearch
+    namespace: observability
+    chart: elastic/elasticsearch
+    version: 8.5.1
+    values:
+    - "./elasticsearch.values.yaml"
+  - name: kibana
+    labels:
+      release: kibana
+    namespace: observability
+    chart: elastic/kibana
+    version: 8.5.1
+    values:
+    - "./kibana.values.yaml"
+  - name: fluent-bit
+    labels:
+      release: fluent-bit
+    namespace: observability
+    chart: fluent/fluent-bit
+    version: 0.21.5
+    values:
+    - "./fluent-bit.values.yaml"
