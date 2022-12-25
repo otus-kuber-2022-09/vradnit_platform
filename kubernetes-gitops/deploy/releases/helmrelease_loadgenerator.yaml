@@ -1,0 +1,19 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: loadgenerator
+  namespace: microservices-demo
+spec:
+  chart:
+    spec:
+      chart: ./deploy/charts/loadgenerator
+      sourceRef:
+        kind: GitRepository
+        name: microservices-demo
+      reconcileStrategy: Revision
+  interval: 2m0s
+  targetNamespace: microservices-demo
+  values:
+    image:
+      repository: vradnit/loadgenerator # {"$imagepolicy": "microservices-demo:loadgenerator:name"}
+      tag: v0.0.1 # {"$imagepolicy": "microservices-demo:loadgenerator:tag"}

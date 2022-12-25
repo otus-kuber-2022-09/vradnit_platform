@@ -1,0 +1,13 @@
+apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
+kind: Kustomization
+metadata:
+  name: microservices-demo
+  namespace: microservices-demo
+spec:
+  force: false
+  interval: 2m
+  path: ./deploy/releases
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: microservices-demo

@@ -1,0 +1,14 @@
+apiVersion: source.toolkit.fluxcd.io/v1beta2
+kind: GitRepository
+metadata:
+  name: microservices-demo
+  namespace: microservices-demo
+spec:
+  gitImplementation: go-git
+  interval: 1m0s
+  ref:
+    branch: main
+  secretRef:
+    name: microservices-demo
+  timeout: 20s
+  url: ssh://git@gitlab.com/vradnit/microservices-demo

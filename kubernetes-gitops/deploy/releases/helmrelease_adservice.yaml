@@ -1,0 +1,19 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: adservice
+  namespace: microservices-demo
+spec:
+  chart:
+    spec:
+      chart: ./deploy/charts/adservice
+      sourceRef:
+        kind: GitRepository
+        name: microservices-demo
+      reconcileStrategy: Revision
+  interval: 2m0s
+  targetNamespace: microservices-demo
+  values:
+    image:
+      repository: vradnit/adservice # {"$imagepolicy": "microservices-demo:adservice:name"}
+      tag: v0.0.1 # {"$imagepolicy": "microservices-demo:adservice:tag"}

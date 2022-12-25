@@ -1,0 +1,19 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: cartservice
+  namespace: microservices-demo
+spec:
+  chart:
+    spec:
+      chart: ./deploy/charts/cartservice
+      sourceRef:
+        kind: GitRepository
+        name: microservices-demo
+      reconcileStrategy: Revision
+  interval: 2m0s
+  targetNamespace: microservices-demo
+  values:
+    image:
+      repository: vradnit/cartservice # {"$imagepolicy": "microservices-demo:cartservice:name"}
+      tag: v0.0.1 # {"$imagepolicy": "microservices-demo:cartservice:tag"}

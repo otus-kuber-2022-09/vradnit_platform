@@ -1,0 +1,80 @@
+stages:
+  - adservice
+  - cartservice
+  - checkoutservice
+  - currencyservice
+  - emailservice
+  - loadgenerator
+  - paymentservice
+  - productcatalogservice
+  - recommendationservice
+  - shippingservice
+  - frontend
+
+.common_tasks:
+  before_script:
+    - echo "Start at $(date)"
+    - echo "CI_COMMIT_TAG ${CI_COMMIT_TAG}"
+  image:
+    name: quay.io/podman/stable:v4.3.1
+  variables:
+    SRCDIR: src/${CI_JOB_STAGE}
+    IMAGE_NAME: ${CI_JOB_STAGE}
+    IMAGE_TAG: ${CI_COMMIT_TAG}
+    DH_LOGIN_URL: index.docker.io
+    DH_IMAGE_NAME: ${DH_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}
+  script:
+    - echo "Build image ${DH_USERNAME}/${IMAGE_NAME}:${IMAGE_TAG}"
+    - sed -i 's/short-name-mode="enforcing"/short-name-mode="permissive"/g' /etc/containers/registries.conf
+    - echo ${DH_PASSWORD} | podman login -u "${DH_USERNAME}" --password-stdin ${DH_LOGIN_URL}
+    - cd "${SRCDIR}"
+    - podman build -f ./Dockerfile -t "${DH_IMAGE_NAME}" .
+    - podman push "${DH_IMAGE_NAME}"
+  rules:
+    - if: '$CI_COMMIT_TAG =~ /^v\d+.\d+.\d+/'
+
+adservice:
+  stage: adservice
+  extends: .common_tasks
+
+cartservice:
+  stage: cartservice
+  variables:
+    SRCDIR: src/${CI_JOB_STAGE}/src
+  extends: .common_tasks
+
+checkoutservice:
+  stage: checkoutservice
+  extends: .common_tasks
+
+currencyservice:
+  stage: currencyservice
+  extends: .common_tasks
+
+emailservice:
+  stage: emailservice
+  extends: .common_tasks
+
+frontend:
+  stage: frontend
+  extends: .common_tasks
+
+loadgenerator:
+  stage: loadgenerator
+  extends: .common_tasks
+
+paymentservice:
+  stage: paymentservice
+  extends: .common_tasks
+
+productcatalogservice:
+  stage: productcatalogservice
+  extends: .common_tasks
+
+recommendationservice:
+  stage: recommendationservice
+  extends: .common_tasks
+
+shippingservice:
+  stage: shippingservice
+  extends: .common_tasks

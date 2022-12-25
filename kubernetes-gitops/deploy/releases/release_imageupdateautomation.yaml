@@ -1,0 +1,255 @@
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageRepository
+metadata:
+  name: adservice
+  namespace: microservices-demo
+spec:
+  image: vradnit/adservice
+  interval: 2m0s
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImagePolicy
+metadata:
+  name: adservice
+  namespace: microservices-demo
+spec:
+  imageRepositoryRef:
+    name: adservice
+  policy:
+    semver:
+      range: 0.0.x
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageRepository
+metadata:
+  name: cartservice
+  namespace: microservices-demo
+spec:
+  image: vradnit/cartservice
+  interval: 2m0s
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImagePolicy
+metadata:
+  name: cartservice
+  namespace: microservices-demo
+spec:
+  imageRepositoryRef:
+    name: cartservice
+  policy:
+    semver:
+      range: 0.0.x
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageRepository
+metadata:
+  name: checkoutservice
+  namespace: microservices-demo
+spec:
+  image: vradnit/checkoutservice
+  interval: 2m0s
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImagePolicy
+metadata:
+  name: checkoutservice
+  namespace: microservices-demo
+spec:
+  imageRepositoryRef:
+    name: checkoutservice
+  policy:
+    semver:
+      range: 0.0.x
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageRepository
+metadata:
+  name: currencyservice
+  namespace: microservices-demo
+spec:
+  image: vradnit/currencyservice
+  interval: 2m0s
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImagePolicy
+metadata:
+  name: currencyservice
+  namespace: microservices-demo
+spec:
+  imageRepositoryRef:
+    name: currencyservice
+  policy:
+    semver:
+      range: 0.0.x
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageRepository
+metadata:
+  name: emailservice
+  namespace: microservices-demo
+spec:
+  image: vradnit/emailservice
+  interval: 2m0s
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImagePolicy
+metadata:
+  name: emailservice
+  namespace: microservices-demo
+spec:
+  imageRepositoryRef:
+    name: emailservice
+  policy:
+    semver:
+      range: 0.0.x
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageRepository
+metadata:
+  name: loadgenerator
+  namespace: microservices-demo
+spec:
+  image: vradnit/loadgenerator
+  interval: 2m0s
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImagePolicy
+metadata:
+  name: loadgenerator
+  namespace: microservices-demo
+spec:
+  imageRepositoryRef:
+    name: loadgenerator
+  policy:
+    semver:
+      range: 0.0.x
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageRepository
+metadata:
+  name: paymentservice
+  namespace: microservices-demo
+spec:
+  image: vradnit/paymentservice
+  interval: 2m0s
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImagePolicy
+metadata:
+  name: paymentservice
+  namespace: microservices-demo
+spec:
+  imageRepositoryRef:
+    name: paymentservice
+  policy:
+    semver:
+      range: 0.0.x
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageRepository
+metadata:
+  name: productcatalogservice
+  namespace: microservices-demo
+spec:
+  image: vradnit/productcatalogservice
+  interval: 2m0s
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImagePolicy
+metadata:
+  name: productcatalogservice
+  namespace: microservices-demo
+spec:
+  imageRepositoryRef:
+    name: productcatalogservice
+  policy:
+    semver:
+      range: 0.0.x
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageRepository
+metadata:
+  name: recommendationservice
+  namespace: microservices-demo
+spec:
+  image: vradnit/recommendationservice
+  interval: 2m0s
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImagePolicy
+metadata:
+  name: recommendationservice
+  namespace: microservices-demo
+spec:
+  imageRepositoryRef:
+    name: recommendationservice
+  policy:
+    semver:
+      range: 0.0.x
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageRepository
+metadata:
+  name: shippingservice
+  namespace: microservices-demo
+spec:
+  image: vradnit/shippingservice
+  interval: 2m0s
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImagePolicy
+metadata:
+  name: shippingservice
+  namespace: microservices-demo
+spec:
+  imageRepositoryRef:
+    name: shippingservice
+  policy:
+    semver:
+      range: 0.0.x
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageRepository
+metadata:
+  name: frontend
+  namespace: microservices-demo 
+spec:
+  image: vradnit/frontend
+  interval: 2m0s
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImagePolicy
+metadata:
+  name: frontend
+  namespace: microservices-demo
+spec:
+  imageRepositoryRef:
+    name: frontend
+  policy:
+    semver:
+      range: 0.0.x
+---
+apiVersion: image.toolkit.fluxcd.io/v1beta1
+kind: ImageUpdateAutomation
+metadata:
+  name: frontend
+  namespace: microservices-demo
+spec:
+  interval: 2m0s
+  sourceRef:
+    kind: GitRepository
+    name: microservices-demo
+  git:
+    checkout:
+      ref:
+        branch: main
+    commit:
+      author:
+        email: fluxcdbot@radnit.ru
+        name: fluxcdbot
+      messageTemplate: '{{range .Updated.Images}}{{println .}}{{end}}'
+    push:
+      branch: main
+  update:
+    path: ./deploy/releases/
+    strategy: Setters
