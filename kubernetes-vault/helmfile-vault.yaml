@@ -1,0 +1,33 @@
+repositories:
+  - name: consul
+    url: git+https://github.com/hashicorp/consul-helm@/?ref=v0.32.1
+  - name: vault
+    url: git+https://github.com/hashicorp/vault-helm@/?ref=v0.23.0
+
+helmDefaults:
+  wait: true
+  timeout: 900
+  createNamespace: true
+
+releases:
+  - name: consul
+    labels:
+      release: consul
+    namespace: vault
+    chart: consul/consul
+    version: 0.32.1
+  - name: vault
+    labels:
+      release: vault
+    namespace: vault
+    chart: vault/vault
+    version: 0.23.0
+    values:
+    - server:
+        standalone:
+          enabled: false
+        ha:
+          enabled: true
+    - ui:
+        enabled: true
+        serviceType: "ClusterIP"

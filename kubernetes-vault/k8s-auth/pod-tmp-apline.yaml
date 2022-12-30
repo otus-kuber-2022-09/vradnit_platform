@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  creationTimestamp: null
+  labels:
+    run: pod-tmp-apline
+  name: pod-tmp-apline
+  namespace: vault
+spec:
+  containers:
+  - image: alpine:3.7
+    command: ["/bin/sh", "-ec", "sleep 999999"]
+    name: pod-tmp-apline
+    resources: {}
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+  serviceAccount: vault-auth
+  serviceAccountName: vault-auth
+
