@@ -894,3 +894,620 @@ revocation_time            1672403294
 revocation_time_rfc3339    2022-12-30T12:28:14.133227779Z
 
 
+7. Конфигурирование доступа к vault по https.
+   За основу возьмем документацию с: https://developer.hashicorp.com/vault/docs/platform/k8s/helm/examples/standalone-tls
+   
+   В директории "kubernetes-vault/vault-with-tls" создадим скрипт, в который сведем действия по генерации ssl ключей, сертификатов и секрета:
+```console
+# cd ./kubernetes-vault/vault-with-tls
+# ./prepare-tls.sh
+```
+
+   В результате у нас появляется:
+   - сертификат "vault-csr" в статусе "Approved,Issued"
+   - секрет "vault-server-tls", которые мы будем монтировать в поды vault
+
+```console
+# k get csr -n vault 
+NAME        AGE    SIGNERNAME                      REQUESTOR          REQUESTEDDURATION   CONDITION
+vault-csr   107m   kubernetes.io/kubelet-serving   kubernetes-admin   <none>              Approved,Issued
+
+# k get secret vault-server-tls  -n vault 
+NAME               TYPE     DATA   AGE
+vault-server-tls   Opaque   3      107m
+```
+  
+   Затем мы подготавливаем helmfile + values:
+   ( где учитываем что у нас используется consul в качестве storage )
+   ./kubernetes-vault/vault-with-tls/helmfile-vault-tls.yaml
+   ./kubernetes-vault/vault-with-tls/values-tls.yaml
+
+   Применяем:
+```
+# helmfile -f helmfile-vault-tls.yaml apply
+```
+   
+   Затем рестартуем поды vault и в них делаем "unseal"
+   Проверяем статус vault, видим что http сменилось на https: 
+```console
+# kubectl exec -n vault -it vault-2 -- vault status
+Key                    Value
+---                    -----
+Seal Type              shamir
+Initialized            true
+Sealed                 false
+Total Shares           1
+Threshold              1
+Version                1.12.1
+Build Date             2022-10-27T12:32:05Z
+Storage Type           consul
+Cluster Name           vault-cluster-7f7c0326
+Cluster ID             ed7af884-bfa8-d0a0-af26-d6ca8ac87c62
+HA Enabled             true
+HA Cluster             https://vault-0.vault-internal:8201
+HA Mode                standby
+Active Node Address    https://10.244.196.76:8200
+```
+
+   С помощью нашего тестового пода "pod-tmp-apline" проверяем работу по https: 
+```console
+# 
+# KUBE_TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+# CACERT=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+# 
+# curl -s --cacert ${CACERT} --request POST --data '{"jwt": "'$KUBE_TOKEN'", "role": "otus"}' https://vault:8200/v1/auth/kubernetes/login | jq
+{
+  "request_id": "1286a9bc-bdd4-2cdf-c199-0c6bc8334075",
+  "lease_id": "",
+  "renewable": false,
+  "lease_duration": 0,
+  "data": null,
+  "wrap_info": null,
+  "warnings": null,
+  "auth": {
+    "client_token": "hvs.CAESIORUXMfvLCQgWHLAtfP4TY5kYa0oKuPf6kLdrDRD2dTEGh4KHGh2cy5HMG1WWkV4WXZ4OXFhbVJkcmpGQ3ZDbHo",
+    "accessor": "gfSZSBQLutlwsxF1QJmghyDs",
+    "policies": [
+      "default",
+      "otus-policy"
+    ],
+    "token_policies": [
+      "default",
+      "otus-policy"
+    ],
+    "metadata": {
+      "role": "otus",
+      "service_account_name": "vault-auth",
+      "service_account_namespace": "vault",
+      "service_account_secret_name": "",
+      "service_account_uid": "ce698cd0-072c-4b35-a397-d6f9048299ac"
+    },
+    "lease_duration": 86400,
+    "renewable": true,
+    "entity_id": "a2b17e36-8af9-11df-c28e-654f54298e3c",
+    "token_type": "service",
+    "orphan": true,
+    "mfa_requirement": null,
+    "num_uses": 0
+  }
+}
+# 
+# TOKEN=$(curl -s --cacert ${CACERT} --request POST --data '{"jwt": "'$KUBE_TOKEN'", "role": "otus"}' https://vault:8200/v1/auth/kubernetes/login | jq '.auth.client_token' | awk -F\" '{print $2}')
+# 
+# echo ${TOKEN}
+hvs.CAESIPWpRm0s8j5Bzo4RCVbnFbKTwW34K2DFRoxSYBprD0k4Gh4KHGh2cy5YZXB5MVZRemhZOFozV2FzTHhneEN2dUc
+# 
+# curl --cacert "${CACERT}" --header "X-Vault-Token: ${TOKEN}" https://vault:8200/v1/otus/otus-rw/config
+{"request_id":"f6c5a76e-a83f-e74c-c744-fe38565aac0c","lease_id":"","renewable":false,"lease_duration":2764800,"data":{"bar":"baz"},"wrap_info":null,"warnings":null,"auth":null}
+# 
+# curl --cacert "${CACERT}" --request POST --data '{"bar-beer": "baz-beer"}' --header "X-Vault-Token: ${TOKEN}" https://vault:8200/v1/otus/otus-rw/config
+# 
+# curl --cacert "${CACERT}" --header "X-Vault-Token: ${TOKEN}" https://vault:8200/v1/otus/otus-rw/config
+{"request_id":"6fa4f97d-9104-b792-a45a-96ae4fb77c5e","lease_id":"","renewable":false,"lease_duration":2764800,"data":{"bar-beer":"baz-beer"},"wrap_info":null,"warnings":null,"auth":null}
+```
+
+  В итоге мы смогли по https прочитать секрет "otus/otus-rw/config" и изменить его.
+
+
+8. Настройка autounseal
+   Воспользуемся документацией: https://developer.hashicorp.com/vault/tutorials/auto-unseal/autounseal-transit
+   и примером из: https://luafanti.medium.com/vault-auto-unseal-using-transit-secret-engine-on-kubernetes-8f38b60c04f6
+
+   Для autounseal будем использовать второй vault поднятый в неймспейсе "vault-autounseal"
+
+   Создадим директорию "kubernetes-vault/vault-autounseal".
+
+   Аналогично предыдущему ДЗ (переход на https) подготовим скрипт "kubernetes-vault/vault-autounseal/prepare-tls-autounseal.sh".
+   С помощью этого скрипта в неймспейсе "vault-autounseal" создадим secret "vault-server-tls" ( нужен для работы tls )
+
+   Запускаем скрипт и проверяем созданные csr и secret:
+```console
+# ./prepare-tls-autounseal.sh 
+Create a key for Kubernetes to sign
+Create a file ./csr.conf
+Create a CSR
+Create a file ./csr.yaml
+Send the CSR to Kubernetes
+certificatesigningrequest.certificates.k8s.io/vault-csr-autounseal created
+verify CSR has been received and stored
+NAME                   AGE   SIGNERNAME                      REQUESTOR          REQUESTEDDURATION   CONDITION
+vault-csr-autounseal   0s    kubernetes.io/kubelet-serving   kubernetes-admin   <none>              Pending
+Approve the CSR in Kubernetes
+certificatesigningrequest.certificates.k8s.io/vault-csr-autounseal approved
+Verify that the certificate was approved and issued
+kubectl get csr vault-csr-autounseal no approved, sleep 2s...
+vault-csr-autounseal   2s    kubernetes.io/kubelet-serving   kubernetes-admin   <none>              Approved,Issued
+Retrieve the certificate
+Write the certificate out to a file
+Retrieve Kubernetes CA
+Create the namespace
+namespace/vault-autounseal created
+Store the key, cert, and Kubernetes CA into Kubernetes secrets
+secret/vault-server-tls created
+ALL OK
+
+# k get csr vault-csr-autounseal
+NAME                   AGE     SIGNERNAME                      REQUESTOR          REQUESTEDDURATION   CONDITION
+vault-csr-autounseal   2m38s   kubernetes.io/kubelet-serving   kubernetes-admin   <none>              Approved,Issued
+# 
+# k get secret vault-server-tls -n vault-autounseal
+NAME               TYPE     DATA   AGE
+vault-server-tls   Opaque   3      2m47s
+```   
+
+   Подготавливаем helmfile и values ( storage type raft ):
+   "kubernetes-vault/vault-autounseal/values-vault-autounseal.yaml"
+   "kubernetes-vault/vault-autounseal/helmfile-vault-autounseal.yaml"
+
+   Запускаем helmfile:
+```console
+# helmfile -f helmfile-vault-autounseal.yaml apply
+```
+   Проверяем статус подов:
+```console
+# k get pods -n vault-autounseal
+NAME                                               READY   STATUS    RESTARTS   AGE
+vault-autounseal-0                                 0/1     Running   0          7m27s
+vault-autounseal-1                                 0/1     Running   0          7m27s
+vault-autounseal-2                                 0/1     Running   0          7m27s
+vault-autounseal-agent-injector-84bd5d8cf4-5ckft   1/1     Running   0          19m
+```
+
+   Инициализируем pod "vault-autounseal-0":
+```console
+# k exec -it vault-autounseal-0 -n vault-autounseal -- sh
+/ $ vault operator init -key-shares=1 -key-threshold=1
+Unseal Key 1: QBR2hZHpyorifkiJWwzOkeb+Qk4xe29senXVKF1q1YQ=
+
+Initial Root Token: hvs.BHwE3iaV0FwGUh8Y5A75LcNk
+
+Vault initialized with 1 key shares and a key threshold of 1. Please securely
+distribute the key shares printed above. When the Vault is re-sealed,
+restarted, or stopped, you must supply at least 1 of these keys to unseal it
+before it can start servicing requests.
+
+Vault does not store the generated root key. Without at least 1 keys to
+reconstruct the root key, Vault will remain permanently sealed!
+
+It is possible to generate new unseal keys, provided you have a quorum of
+existing unseal keys shares. See "vault operator rekey" for more information.
+```
+
+  Объединяем в кластер:
+```console
+# k exec -it vault-autounseal-0 -n vault-autounseal -- vault operator raft join -leader-ca-cert=@/vault/userconfig/vault-server-tls/vault.ca https://vault-autounseal-0.vault-autounseal-internal:8200
+Key       Value
+---       -----
+Joined    true
+# 
+# k exec -it vault-autounseal-2 -n vault-autounseal -- vault operator raft join -leader-ca-cert=@/vault/userconfig/vault-server-tls/vault.ca https://vault-autounseal-0.vault-autounseal-internal:8200
+Key       Value
+---       -----
+Joined    true
+```
+
+  Выполняем unseal для vault-autounseal-1 и vault-autounseal-2:
+```console
+#  kubectl exec vault-autounseal-1 -n vault-autounseal -- vault operator unseal QBR2hZHpyorifkiJWwzOkeb+Qk4xe29senXVKF1q1YQ=
+Key                Value
+---                -----
+Seal Type          shamir
+Initialized        true
+Sealed             true
+Total Shares       1
+Threshold          1
+Unseal Progress    0/1
+Unseal Nonce       n/a
+Version            1.12.1
+Build Date         2022-10-27T12:32:05Z
+Storage Type       raft
+HA Enabled         true
+#  kubectl exec vault-autounseal-2 -n vault-autounseal -- vault operator unseal QBR2hZHpyorifkiJWwzOkeb+Qk4xe29senXVKF1q1YQ=
+Key                Value
+---                -----
+Seal Type          shamir
+Initialized        true
+Sealed             true
+Total Shares       1
+Threshold          1
+Unseal Progress    0/1
+Unseal Nonce       n/a
+Version            1.12.1
+Build Date         2022-10-27T12:32:05Z
+Storage Type       raft
+HA Enabled         true
+```
+
+   Проверяем состояние подов и статус "raft list-peers"
+```console
+# k get pods 
+NAME                                               READY   STATUS    RESTARTS   AGE
+vault-autounseal-0                                 1/1     Running   0          42m
+vault-autounseal-1                                 1/1     Running   0          42m
+vault-autounseal-2                                 1/1     Running   0          12m
+vault-autounseal-agent-injector-84bd5d8cf4-5ckft   1/1     Running   0          156m
+# 
+# kubectl exec -it vault-autounseal-0 -n vault-autounseal -- vault operator raft list-peers
+Node                                    Address                                              State       Voter
+----                                    -------                                              -----       -----
+ed268110-a2cc-dbd4-db16-8b68ed6c72ad    vault-autounseal-0.vault-autounseal-internal:8201    leader      true
+bfdf602f-7c9c-cf15-56d2-3e68e29f2c70    vault-autounseal-1.vault-autounseal-internal:8201    follower    true
+770e3f0d-d50e-b31e-ce92-78a215f10024    vault-autounseal-2.vault-autounseal-internal:8201    follower    true
+```
+
+   Используя документацию https://developer.hashicorp.com/vault/tutorials/auto-unseal/autounseal-transit
+   настраиваем кластер "vault-autounseal".
+```
+# kubectl exec -it vault-autounseal-0 -n vault-autounseal -- sh
+/ $ vault login
+Token (will be hidden): 
+Success! You are now authenticated. The token information displayed below
+is already stored in the token helper. You do NOT need to run "vault login"
+again. Future Vault requests will automatically use this token.
+
+Key                  Value
+---                  -----
+token                hvs.BHwE3iaV0FwGUh8Y5A75LcNk
+token_accessor       zcISBPJoSfEmw05EwQ8ACAhF
+token_duration       ∞
+token_renewable      false
+token_policies       ["root"]
+identity_policies    []
+policies             ["root"]
+/ $ 
+/ $ vault secrets enable transit
+Success! Enabled the transit secrets engine at: transit/
+/ $ 
+/ $ vault auth list
+Path      Type     Accessor               Description                Version
+----      ----     --------               -----------                -------
+token/    token    auth_token_49ad19ab    token based credentials    n/a
+/ $ 
+/ $ vault audit enable file file_path=stdout
+Success! Enabled the file audit device at: file/
+/ $ 
+/ $ vault write -f transit/keys/autounseal
+Success! Data written to: transit/keys/autounseal
+/ $ 
+/ $ ls -al /tmp/autounseal.hcl
+-rw-r--r--    1 vault    vault          139 Jan  2 20:07 /tmp/autounseal.hcl
+/ $ 
+/ $ cat /tmp/autounseal.hcl
+path "transit/encrypt/autounseal" {
+   capabilities = [ "update" ]
+}
+
+path "transit/decrypt/autounseal" {
+   capabilities = [ "update" ]
+}
+/ $ 
+/ $ vault policy write autounseal /tmp/autounseal.hcl
+Success! Uploaded policy: autounseal
+/ $
+/ $ vault token create -orphan -policy=autounseal -period=24h
+Key                  Value
+---                  -----
+token                hvs.CAESIKCToJ_r9-P2IAMe_fx9V0LE2m4f-jEnEsz7PBkNBKppGh4KHGh2cy5RaFZ5cFlFRkc2QUZxb1A3WEFVTmpKVUE
+token_accessor       MVtW8xAs9bK28H5EjvRNB93Q
+token_duration       24h
+token_renewable      true
+token_policies       ["autounseal" "default"]
+identity_policies    []
+policies             ["autounseal" "default" 
+```
+
+   В итоге мы получили "token" c policies "autounseal" который мы будем использовать в целевом "vault".
+
+   Переходим к настройке целевого "vault", для этого подготовим helmfile и values:
+   "kubernetes-vault/vault-autounseal/helmfile-vault-cluster.yaml"
+   "kubernetes-vault/vault-autounseal/values-vault-cluster.yaml"
+
+   , где в values добавим секцию seal "transit" и укажем адрес для поключения к "vault-autounseal" и token полученный на предыдущем шаге:
+```console
+      seal "transit" {
+        address = "https://vault-autounseal.vault-autounseal.svc:8200"
+        token = "hvs.CAESIKCToJ_r9-P2IAMe_fx9V0LE2m4f-jEnEsz7PBkNBKppGh4KHGh2cy5RaFZ5cFlFRkc2QUZxb1A3WEFVTmpKVUE"
+        disable_renewal = "false"
+        key_name = "autounseal"
+        mount_path = "transit/"
+        tls_skip_verify = "false"
+      }
+```
+
+   применяем изменения и рестартуем поды vault:
+```console
+# helmfile -f helmfile-vault-cluster.yaml apply
+...
+# k delete pod vault-0 vault-1 vault-2
+pod "vault-0" deleted
+pod "vault-1" deleted
+pod "vault-2" deleted
+
+# k get pods | grep vault 
+vault-0                                 0/1     Running   0          8s
+vault-1                                 0/1     Running   0          14s
+vault-2                                 0/1     Running   0          13s
+vault-agent-example                     2/2     Running   0          3d9h
+vault-agent-injector-6df99c75d4-6kk7q   1/1     Running   0          11h
+# 
+# k logs vault-0
+==> Vault server configuration:
+
+             Api Address: https://10.244.133.147:8200
+                     Cgo: disabled
+         Cluster Address: https://vault-0.vault-internal:8201
+              Go Version: go1.19.2
+              Listener 1: tcp (addr: "[::]:8200", cluster address: "[::]:8201", max_request_duration: "1m30s", max_request_size: "33554432", tls: "enabled")
+               Log Level: info
+                   Mlock: supported: true, enabled: false
+           Recovery Mode: false
+                 Storage: consul (HA available)
+                 Version: Vault v1.12.1, built 2022-10-27T12:32:05Z
+             Version Sha: e34f8a14fb7a88af4640b09f3ddbb5646b946d9c
+
+==> Vault server started! Log data will stream in below:
+
+2023-01-02T21:18:42.647Z [INFO]  proxy environment: http_proxy="" https_proxy="" no_proxy=""
+2023-01-02T21:18:42.647Z [WARN]  storage.consul: appending trailing forward slash to path
+2023-01-02T21:18:43.008Z [WARN]  core: entering seal migration mode; Vault will not automatically unseal even if using an autoseal: from_barrier_type=shamir to_barrier_type=transit
+2023-01-02T21:18:43.008Z [INFO]  core: Initializing version history cache for core
+```
+
+   Произведем unseal vault-0 использую ключ "-migrate" ( для того чтобы мигрировать на autounseal ), для подов vault-1 и vault-2 ключ "-migrate" использовать не будем:
+```
+# k exec -it vault-0 -- vault operator unseal -migrate '/rI2lB2cia++UGkQ0JF3P+rsNAJE6ekMqBoQU3vLKE4='
+Key                           Value
+---                           -----
+Recovery Seal Type            shamir
+Initialized                   true
+Sealed                        false
+Total Recovery Shares         1
+Threshold                     1
+Seal Migration in Progress    true
+Version                       1.12.1
+Build Date                    2022-10-27T12:32:05Z
+Storage Type                  consul
+Cluster Name                  vault-cluster-7f7c0326
+Cluster ID                    ed7af884-bfa8-d0a0-af26-d6ca8ac87c62
+HA Enabled                    true
+HA Cluster                    n/a
+HA Mode                       standby
+Active Node Address           <none>
+
+# k exec -it vault-1 -- vault operator unseal '/rI2lB2cia++UGkQ0JF3P+rsNAJE6ekMqBoQU3vLKE4='
+Key                      Value
+---                      -----
+Recovery Seal Type       shamir
+Initialized              true
+Sealed                   true
+Total Recovery Shares    1
+Threshold                1
+Unseal Progress          1/1
+Unseal Nonce             c25d070f-87f9-52c6-1724-9e5bd8eb8366
+Version                  1.12.1
+Build Date               2022-10-27T12:32:05Z
+Storage Type             consul
+HA Enabled               true
+
+# k exec -it vault-2 -- vault operator unseal '/rI2lB2cia++UGkQ0JF3P+rsNAJE6ekMqBoQU3vLKE4='
+Key                      Value
+---                      -----
+Recovery Seal Type       shamir
+Initialized              true
+Sealed                   true
+Total Recovery Shares    1
+Threshold                1
+Unseal Progress          1/1
+Unseal Nonce             8f6601b5-8474-c620-26e8-07f1ace7e8d1
+Version                  1.12.1
+Build Date               2022-10-27T12:32:05Z
+Storage Type             consul
+HA Enabled               true
+```
+
+    Удаляем поды vault и проверяем что через некоторое время они успешно произвели "autounseal"
+```console
+# k delete pod vault-0 vault-1 vault-2
+pod "vault-0" deleted
+pod "vault-1" deleted
+pod "vault-2" deleted
+
+# k get pods | grep vault 
+vault-0                                 1/1     Running   0          14m
+vault-1                                 1/1     Running   0          14m
+vault-2                                 1/1     Running   0          14m
+vault-agent-example                     2/2     Running   0          3d19h
+vault-agent-injector-6df99c75d4-6kk7q   1/1     Running   0          20h
+```
+
+   Лог успешного auto-unseal
+```
+# k logs vault-1
+==> Vault server configuration:
+
+             Api Address: https://10.244.61.237:8200
+                     Cgo: disabled
+         Cluster Address: https://vault-1.vault-internal:8201
+              Go Version: go1.19.2
+              Listener 1: tcp (addr: "[::]:8200", cluster address: "[::]:8201", max_request_duration: "1m30s", max_request_size: "33554432", tls: "enabled")
+               Log Level: info
+                   Mlock: supported: true, enabled: false
+           Recovery Mode: false
+                 Storage: consul (HA available)
+                 Version: Vault v1.12.1, built 2022-10-27T12:32:05Z
+             Version Sha: e34f8a14fb7a88af4640b09f3ddbb5646b946d9c
+
+==> Vault server started! Log data will stream in below:
+
+2023-01-03T06:44:05.890Z [INFO]  proxy environment: http_proxy="" https_proxy="" no_proxy=""
+2023-01-03T06:44:05.890Z [WARN]  storage.consul: appending trailing forward slash to path
+2023-01-03T06:44:05.962Z [INFO]  core: Initializing version history cache for core
+2023-01-03T06:44:05.964Z [INFO]  core: stored unseal keys supported, attempting fetch
+2023-01-03T06:44:06.010Z [INFO]  core.cluster-listener.tcp: starting listener: listener_address=[::]:8201
+2023-01-03T06:44:06.010Z [INFO]  core.cluster-listener: serving cluster requests: cluster_listen_address=[::]:8201
+2023-01-03T06:44:06.010Z [INFO]  core: vault is unsealed
+2023-01-03T06:44:06.010Z [INFO]  core: entering standby mode
+2023-01-03T06:44:06.208Z [INFO]  core: acquired lock, enabling active operation
+2023-01-03T06:44:06.244Z [INFO]  core: unsealed with stored key
+2023-01-03T06:44:06.713Z [INFO]  core: post-unseal setup starting
+2023-01-03T06:44:06.911Z [INFO]  core: loaded wrapping token key
+2023-01-03T06:44:06.920Z [INFO]  core: successfully setup plugin catalog: plugin-directory=""
+2023-01-03T06:44:06.929Z [INFO]  core: successfully mounted backend: type=system version="" path=sys/
+2023-01-03T06:44:06.931Z [INFO]  core: successfully mounted backend: type=identity version="" path=identity/
+2023-01-03T06:44:06.931Z [INFO]  core: successfully mounted backend: type=kv version="" path=otus/
+2023-01-03T06:44:06.932Z [INFO]  core: successfully mounted backend: type=pki version="" path=pki/
+2023-01-03T06:44:06.933Z [INFO]  core: successfully mounted backend: type=pki version="" path=pki_int/
+2023-01-03T06:44:06.943Z [INFO]  core: successfully mounted backend: type=transit version="" path=transit/
+2023-01-03T06:44:06.944Z [INFO]  core: successfully mounted backend: type=cubbyhole version="" path=cubbyhole/
+2023-01-03T06:44:07.114Z [INFO]  core: successfully enabled credential backend: type=token version="" path=token/ namespace="ID: root. Path: "
+2023-01-03T06:44:07.115Z [INFO]  core: successfully enabled credential backend: type=kubernetes version="" path=kubernetes/ namespace="ID: root. Path: "
+2023-01-03T06:44:07.211Z [INFO]  rollback: starting rollback manager
+2023-01-03T06:44:07.212Z [INFO]  core: restoring leases
+2023-01-03T06:44:07.315Z [INFO]  identity: entities restored
+2023-01-03T06:44:07.406Z [INFO]  identity: groups restored
+2023-01-03T06:44:07.806Z [INFO]  expiration: lease restore complete
+2023-01-03T06:44:08.106Z [INFO]  core: usage gauge collection is disabled
+2023-01-03T06:44:08.234Z [INFO]  core: post-unseal setup complete
+```
+
+
+9. Настройка lease временных секретов для доступа к БД postgres.
+   Будем использовать документацию:
+   https://habr.com/ru/company/quadcode/blog/565690/
+   https://developer.hashicorp.com/vault/tutorials/db-credentials/database-secrets
+
+
+   Подготовим helmfile для установки postgres:
+   "kubernetes-vault/vault-lease-secret-db/helmfile-postgresql.yaml"
+```console
+# helmfile -f helmfile-postgresql.yaml apply
+```
+
+   Проверяем статус пода с постргес и выясняем имена сервисов:
+```console
+# k get pods -n db
+NAME           READY   STATUS    RESTARTS   AGE
+postgresql-0   1/1     Running   0          14m
+# 
+# k get svc -n db
+NAME            TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE
+postgresql      ClusterIP   10.101.124.174   <none>        5432/TCP   15m
+postgresql-hl   ClusterIP   None             <none>        5432/TCP   15m
+```
+   Для донастройки postgres пробрасываем порт:
+```consolw
+# k port-forward svc/postgresql 5432:5432 -n db &
+[1] 3122479
+[root@test2 vault-autounseal]# Forwarding from 127.0.0.1:5432 -> 5432
+Forwarding from [::1]:5432 -> 543
+```
+
+   Подключаемся с postgres и создаем:
+   - роль "app", которой мы будем ограничивать доступ для "динамических" пользователей
+   - роль "vault-root-app", с помощью которой мы будем создавать "динамических" пользователей в postgres
+```console
+# psql -h 127.0.0.1 -p 5432 -U postgres -W testdb
+Password: 
+Handling connection for 5432
+psql (15.1)
+Type "help" for help.
+
+testdb=# CREATE ROLE app NOINHERIT; GRANT SELECT ON ALL TABLES IN SCHEMA public TO "app";
+CREATE ROLE
+GRANT
+
+testdb=# CREATE ROLE "vault-root-app" WITH CREATEROLE NOINHERIT LOGIN PASSWORD 'superpasswordforvault';
+CREATE ROLE
+```
+
+   Настраиваем vault:
+```console
+# k exec -it vault-0 -- sh
+/ $ vault login
+Token (will be hidden): 
+Success! You are now authenticated. The token information displayed below
+is already stored in the token helper. You do NOT need to run "vault login"
+again. Future Vault requests will automatically use this token.
+
+Key                  Value
+---                  -----
+token                hvs.YwfppIZj6MeG3RN9UiovgCAk
+token_accessor       osidIgvh1XMZhvpykhyeGijT
+token_duration       ∞
+token_renewable      false
+token_policies       ["root"]
+identity_policies    []
+policies             ["root"]
+/ $ 
+/ $ vault secrets enable -path=psql database
+Success! Enabled the database secrets engine at: psql/
+/ $ 
+/ $ vault write psql/config/app-db \
+    plugin_name=postgresql-database-plugin \
+    connection_url="postgresql://{{username}}:{{password}}@postgresql.db.svc:5432/testdb?sslmode=disable" \
+    allowed_roles=app \
+    username="vault-root-app" \
+    password="superpasswordforvault"
+Success! Data written to: psql/config/app-db
+/ $ 
+/ $ vault write psql/roles/app \
+    db_name=app-db \
+    creation_statements="CREATE ROLE \"{{name}}\" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}' INHERIT; GRANT app TO \"{{name}}\";" \
+    default_ttl="1h" \
+    max_ttl="24h"
+Success! Data written to: psql/roles/app
+/ $ 
+/ $ vault read psql/creds/app
+Key                Value
+---                -----
+lease_id           psql/creds/app/jwWBkFf5plYsTcEfM1R0zBFk
+lease_duration     1h
+lease_renewable    true
+password           6sUbQRAlAQI-gcJt0Sit
+username           v-root-app-VMuTkARf6rmKMa1B1t0u-1672758026
+/ $
+```
+
+   В итоге мы создали роль "psql/roles/app" использующее подключение с бд "psql/config/app-db",
+   и запросили динамические креды.
+
+   Проверка подключения:
+```console
+# psql -h 127.0.0.1 -p 5432 -U v-root-app-VMuTkARf6rmKMa1B1t0u-1672758026 -W testdb
+Password: 
+Handling connection for 5432
+psql (15.1)
+Type "help" for help.
+
+testdb=> \du+
+                                                             List of roles
+                    Role name                    |                         Attributes                         | Member of | Description 
+-------------------------------------------------+------------------------------------------------------------+-----------+-------------
+ app                                             | No inheritance, Cannot login                               | {}        | 
+ pguser                                          | Create DB                                                  | {}        | 
+ postgres                                        | Superuser, Create role, Create DB, Replication, Bypass RLS | {}        | 
+ v-root-app-VMuTkARf6rmKMa1B1t0u-1672758026      | Password valid until 2023-01-03 16:00:31+00                | {app}     | 
+ vault-root-app                                  | No inheritance, Create role                                | {}        | 
+```
+
+   Подключение успешно и наш пользователь "v-root-app-VMuTkARf6rmKMa1B1t0u-1672758026" имеет права согласно роли "app"
