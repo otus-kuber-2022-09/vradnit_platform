@@ -1,4 +1,4 @@
-
+1. Kubeadm.
 
    Подготовка машин
    
@@ -354,4 +354,102 @@ worker-2   Ready    <none>   15h   v1.18.0
 worker-3   Ready    <none>   15h   v1.18.0
 ```
    В итоге мы обновили кластер с v1.17.4 до v1.18.0
+
+
+2. Kubespray
+
+   Подготовка машин
+
+   Кластер будем поднимать в vagrant.
+   Для автоматизации преднастроек виртуальных машин будем использовать "provision shell script" в Vagrantfile.
+   ( в преднастройках только копирование ssh_pub ключа на каждую ноду кластера )
+
+   Запускаем создание виртуальных машин и проверяем их статус:
+```console
+# cd kubernetes-production/ubuntu-kubespray
+
+# vagrant up
+
+# vagrant status
+Current machine states:
+
+master-1                  running (virtualbox)
+worker-1                  running (virtualbox)
+worker-2                  running (virtualbox)
+worker-3                  running (virtualbox)
+```
+
+   Для удобства kubespray будем запускать в докере:
+   Спуллим образ с нужной версией
+```console
+# docker pull quay.io/kubespray/kubespray:v2.20.0
+```
+
+   В поддиректории "inventory" создадим инвентори файл:
+   ( ip адреса взяты из Vagrantfile )
+```
+# cat ./inventory/inventory.ini 
+[all]
+master-1 ansible_host=192.168.56.101 etcd_member_name=etcd1
+worker-1 ansible_host=192.168.56.111
+worker-2 ansible_host=192.168.56.112
+worker-3 ansible_host=192.168.56.113
+
+# в блоке kube-master мы указывем master-ноды
+[kube-master]
+master-1
+
+# в блоке etcd ноды, где будет установлен etcd
+# если мы хотим HA кластер, то etcd устанавливаетcя отдельно от API-server
+[etcd]
+master-1
+
+# в блоке kube-node описываем worker-ноды
+[kube-node]
+worker-1
+worker-2
+worker-3
+
+# в блоке k8s-cluster:children соединяем kube-master и kube-node
+[k8s-cluster:children]
+kube-master
+kube-node
+```
+
+    Запускаем докер с kubesrpay:
+```console
+# docker run --rm -it --mount type=bind,source="$(pwd)/inventory",dst=/inventory   --mount type=bind,source="${HOME}"/.ssh/id_rsa,dst=/root/.ssh/id_rsa   quay.io/kubespray/kubespray:v2.20.0 bash
+```
+
+    Проверяем, что ansible имеет доступ на все ноды:
+```console
+ansible -i /inventory/inventory.ini --private-key /root/.ssh/id_rsa -m ping all
+```
+
+    Запускаем ansible-playbook "cluster.yml":
+```console
+ansible-playbook -i /inventory/inventory.ini --private-key /root/.ssh/id_rsa cluster.yml
+```
+
+    Если бы у нас пользователь бы непривелигированный нужно было добавлять ключи: "--become --become-user=root"
+```console
+ansible-playbook -i inventory/mycluster/inventory.ini --become --become-user=root --user=${SSH_USERNAME} --key-file=${SSH_PRIVATE_KEY} cluster.yml
+```
+
+    Полный лог ansible приведен в файле:
+    "kubernetes-production/ubuntu-kubespray/ansible-kubespray.log"
+
+    Проверяем статус нод кластера.
+    Заходим на мастер ноду и выполняем команды: 
+```console
+# export KUBECONFIG=/etc/kubernetes/admin.conf
+# kubectl get nodes -o wide 
+NAME       STATUS   ROLES           AGE   VERSION   INTERNAL-IP      EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION       CONTAINER-RUNTIME
+master-1   Ready    control-plane   19m   v1.24.6   192.168.56.101   <none>        Ubuntu 18.04.6 LTS   4.15.0-200-generic   containerd://1.6.8
+worker-1   Ready    <none>          18m   v1.24.6   192.168.56.111   <none>        Ubuntu 18.04.6 LTS   4.15.0-200-generic   containerd://1.6.8
+worker-2   Ready    <none>          18m   v1.24.6   192.168.56.112   <none>        Ubuntu 18.04.6 LTS   4.15.0-200-generic   containerd://1.6.8
+worker-3   Ready    <none>          18m   v1.24.6   192.168.56.113   <none>        Ubuntu 18.04.6 LTS   4.15.0-200-generic   containerd://1.6.8
+```
+    
+    В итоге мы получили кластер версии v1.24.6
 

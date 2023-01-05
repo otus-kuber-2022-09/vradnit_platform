@@ -1,4 +1,3 @@
-ssh_key = File.readlines("/root/.ssh/id_rsa").first.strip
 ssh_pub_key = File.readlines("/root/.ssh/id_rsa.pub").first.strip
 
 $script1 = <<-SCRIPT
