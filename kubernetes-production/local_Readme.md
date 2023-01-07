@@ -387,7 +387,7 @@ worker-3                  running (virtualbox)
 
    В поддиректории "inventory" создадим инвентори файл:
    ( ip адреса взяты из Vagrantfile )
-```
+```console
 # cat ./inventory/inventory.ini 
 [all]
 master-1 ansible_host=192.168.56.101 etcd_member_name=etcd1
@@ -453,3 +453,197 @@ worker-3   Ready    <none>          18m   v1.24.6   192.168.56.113   <none>     
     
     В итоге мы получили кластер версии v1.24.6
 
+
+3. Установка кластера с 3 master-нодами и 2 worker-нодами.
+   Будем использовать kubesrpay.
+
+   Все артефакты, необходимые для установки разместим в директории:
+   "kubernetes-production/ha-kubespray"   
+
+   Виртуальные машины будем поднимать в vagrant.
+   Нам потребуется семь виртуальных машин:
+   - 2шт. лоадбалансер ( haproxy + keepalkived ) 
+   - 3шт. мастер ноды
+   - 2шт. воркер ноды
+
+   Создадим Vagrantfile, где опишем необходимые параметры нод, и их первоначальную инициализацию ( ip адреса, ssh ключи и т.д. )
+   "kubernetes-production/ha-kubespray/Vagrantfile"
+
+   Запускаем создание нод и проверяем их статус:
+```console
+# cd kubernetes-production/ha-kubespray/
+# vagrant up
+
+# vagrant status
+Current machine states:
+
+lb-1                      running (virtualbox)
+lb-2                      running (virtualbox)
+master-1                  running (virtualbox)
+master-2                  running (virtualbox)
+master-3                  running (virtualbox)
+worker-1                  running (virtualbox)
+worker-2                  running (virtualbox)
+```
+
+   В поддиректории "inventory" создаем инвентори файл, где описываем наши ноды и их их группы:
+```console
+# cat ./inventory/inventory.ini 
+[all]
+lb-1 ansible_host=192.168.56.91
+lb-2 ansible_host=192.168.56.92
+master-1 ansible_host=192.168.56.101 etcd_member_name=etcd1
+master-2 ansible_host=192.168.56.102 etcd_member_name=etcd2
+master-3 ansible_host=192.168.56.103 etcd_member_name=etcd3
+worker-1 ansible_host=192.168.56.111
+worker-2 ansible_host=192.168.56.112
+
+[lb]
+lb-1
+lb-2
+
+[kube-master]
+master-1
+master-2
+master-3
+
+[etcd]
+master-1
+master-2
+master-3
+
+[kube-node]
+worker-1
+worker-2
+
+[k8s-cluster:children]
+kube-master
+kube-node
+```
+
+   Для удобства развертывания haproxy+keepalived на виртуалках "lb", будем использовать 
+   - плейбук lb.yaml
+   - роль "lb" в поддиректории ./roles 
+```console
+lb.yaml 
+roles/
+roles/lb/tasks/main.yml
+roles/lb/templates/keepalived.j2
+roles/lb/templates/haproxy.j2
+```
+
+   Для кастомизации установки в директории "inventory" создадим директорию "group_vars", где опишем необходимые variables:
+   - днс имя лоадбалансера для апи сервера
+   - ip адрес лоадбалансера для апи сервера
+   - port лоадбалансера для апи сервера
+   - версию кубернетес
+    и др. 
+```console
+# tree ./inventory/group_vars/
+./inventory/group_vars/
+├── all
+│   └── all.yml
+└── k8s_cluster
+    └── k8s-cluster.yml
+
+
+# cat ./inventory/group_vars/all/all.yml 
+---
+apiserver_loadbalancer_domain_name: "api.kube.radnit.local"
+loadbalancer_apiserver:
+  address: 192.168.56.90
+  port: 6443
+
+
+# cat ./inventory/group_vars/k8s_cluster/k8s-cluster.yml 
+---
+kube_version: v1.24.6
+
+kube_network_plugin: calico
+
+kube_service_addresses: 10.244.0.0/18
+
+kube_pods_subnet: 10.244.64.0/18
+
+kube_network_node_prefix: 24
+
+kube_proxy_mode: ipvs
+
+kube_proxy_strict_arp: true
+```
+
+
+    Устанавливать будем с помощью docker контейнера, примонтировав к нему:
+    - директорию с инвентори
+    - ssh ключ
+    - роль "lb" в поддиреторию "roles"
+    - playbook "lb.yaml"
+
+    Сначала запустим проверку доступности всех нод.
+    Затем запустим плейбук "lb.yml", 
+    и наконец запустим установку через кубеспрей ( плейбук cluster.yml )
+```console
+# docker run --rm -it --mount type=bind,source="$(pwd)/inventory",dst=/inventory \
+  --mount type=bind,source="${HOME}"/.ssh/id_rsa,dst=/root/.ssh/id_rsa \
+  --mount type=bind,source="$(pwd)"/roles/lb,dst=/kubespray/roles/lb \
+  --mount type=bind,source="$(pwd)"/lb.yaml,dst=/kubespray/lb.yaml  \
+  quay.io/kubespray/kubespray:v2.20.0 bash
+
+# ansible -i /inventory/inventory.ini -m ping all
+
+# ansible-playbook -i /inventory/inventory.ini --private-key /root/.ssh/id_rsa lb.yml
+
+# ansible-playbook -i /inventory/inventory.ini --private-key /root/.ssh/id_rsa cluster.yml
+```
+
+   Полный лог установки сохранен в файле:
+   "kubernetes-production/ha-kubespray/ha-kubespray-ansible.log"
+
+
+   Проверка установленного кластера:
+```console
+# kubectl cluster-info
+Kubernetes control plane is running at https://api.kube.radnit.local:6443
+
+To further debug and diagnose cluster problems, use 'kubectl cluster-info dump'.
+ 
+# kubectl get nodes -o wide
+NAME       STATUS   ROLES           AGE   VERSION   INTERNAL-IP      EXTERNAL-IP   OS-IMAGE                         KERNEL-VERSION              CONTAINER-RUNTIME
+master-1   Ready    control-plane   19m   v1.24.6   192.168.56.101   <none>        AlmaLinux 8.7 (Stone Smilodon)   4.18.0-425.3.1.el8.x86_64   containerd://1.6.8
+master-2   Ready    control-plane   18m   v1.24.6   192.168.56.102   <none>        AlmaLinux 8.7 (Stone Smilodon)   4.18.0-425.3.1.el8.x86_64   containerd://1.6.8
+master-3   Ready    control-plane   18m   v1.24.6   192.168.56.103   <none>        AlmaLinux 8.7 (Stone Smilodon)   4.18.0-425.3.1.el8.x86_64   containerd://1.6.8
+worker-1   Ready    <none>          17m   v1.24.6   192.168.56.111   <none>        AlmaLinux 8.7 (Stone Smilodon)   4.18.0-425.3.1.el8.x86_64   containerd://1.6.8
+worker-2   Ready    <none>          17m   v1.24.6   192.168.56.112   <none>        AlmaLinux 8.7 (Stone Smilodon)   4.18.0-425.3.1.el8.x86_64   containerd://1.6.8
+
+# kubectl get pods -A -o wide
+NAMESPACE     NAME                               READY   STATUS    RESTARTS   AGE   IP               NODE       NOMINATED NODE   READINESS GATES
+kube-system   calico-node-8qnzb                  1/1     Running   0          16m   192.168.56.112   worker-2   <none>           <none>
+kube-system   calico-node-kllr8                  1/1     Running   0          16m   192.168.56.103   master-3   <none>           <none>
+kube-system   calico-node-ngspt                  1/1     Running   0          16m   192.168.56.102   master-2   <none>           <none>
+kube-system   calico-node-p2w49                  1/1     Running   0          16m   192.168.56.101   master-1   <none>           <none>
+kube-system   calico-node-xdk7v                  1/1     Running   0          16m   192.168.56.111   worker-1   <none>           <none>
+kube-system   coredns-74d6c5659f-22rgr           1/1     Running   0          16m   10.244.80.65     master-3   <none>           <none>
+kube-system   coredns-74d6c5659f-kc6tq           1/1     Running   0          16m   10.244.118.129   master-1   <none>           <none>
+kube-system   dns-autoscaler-59b8867c86-lmhv7    1/1     Running   0          16m   10.244.78.65     master-2   <none>           <none>
+kube-system   kube-apiserver-master-1            1/1     Running   1          19m   192.168.56.101   master-1   <none>           <none>
+kube-system   kube-apiserver-master-2            1/1     Running   1          18m   192.168.56.102   master-2   <none>           <none>
+kube-system   kube-apiserver-master-3            1/1     Running   1          18m   192.168.56.103   master-3   <none>           <none>
+kube-system   kube-controller-manager-master-1   1/1     Running   1          19m   192.168.56.101   master-1   <none>           <none>
+kube-system   kube-controller-manager-master-2   1/1     Running   1          18m   192.168.56.102   master-2   <none>           <none>
+kube-system   kube-controller-manager-master-3   1/1     Running   1          18m   192.168.56.103   master-3   <none>           <none>
+kube-system   kube-proxy-27j4m                   1/1     Running   0          18m   192.168.56.102   master-2   <none>           <none>
+kube-system   kube-proxy-42xqf                   1/1     Running   0          19m   192.168.56.101   master-1   <none>           <none>
+kube-system   kube-proxy-b9pcg                   1/1     Running   0          17m   192.168.56.111   worker-1   <none>           <none>
+kube-system   kube-proxy-fsvcr                   1/1     Running   0          18m   192.168.56.103   master-3   <none>           <none>
+kube-system   kube-proxy-ftgxx                   1/1     Running   0          17m   192.168.56.112   worker-2   <none>           <none>
+kube-system   kube-scheduler-master-1            1/1     Running   1          19m   192.168.56.101   master-1   <none>           <none>
+kube-system   kube-scheduler-master-2            1/1     Running   1          18m   192.168.56.102   master-2   <none>           <none>
+kube-system   kube-scheduler-master-3            1/1     Running   1          18m   192.168.56.103   master-3   <none>           <none>
+kube-system   nodelocaldns-27drm                 1/1     Running   0          16m   192.168.56.103   master-3   <none>           <none>
+kube-system   nodelocaldns-f4pwt                 1/1     Running   0          16m   192.168.56.101   master-1   <none>           <none>
+kube-system   nodelocaldns-km8fq                 1/1     Running   0          16m   192.168.56.102   master-2   <none>           <none>
+kube-system   nodelocaldns-t8744                 1/1     Running   0          16m   192.168.56.112   worker-2   <none>           <none>
+kube-system   nodelocaldns-z56rt                 1/1     Running   0          16m   192.168.56.111   worker-1   <none>           <none>
+```
+
+   HA кластер kubernetes установлен.

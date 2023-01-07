@@ -1,0 +1,5 @@
+---
+apiserver_loadbalancer_domain_name: "api.kube.radnit.local"
+loadbalancer_apiserver:
+  address: 192.168.56.90
+  port: 6443
