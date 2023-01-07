@@ -892,6 +892,8 @@ Key                        Value
 ---                        -----
 revocation_time            1672403294
 revocation_time_rfc3339    2022-12-30T12:28:14.133227779Z
+```
+
 
 
 7. Конфигурирование доступа к vault по https.
@@ -923,7 +925,7 @@ vault-server-tls   Opaque   3      107m
    ./kubernetes-vault/vault-with-tls/values-tls.yaml
 
    Применяем:
-```
+```console
 # helmfile -f helmfile-vault-tls.yaml apply
 ```
    
@@ -1007,6 +1009,7 @@ hvs.CAESIPWpRm0s8j5Bzo4RCVbnFbKTwW34K2DFRoxSYBprD0k4Gh4KHGh2cy5YZXB5MVZRemhZOFoz
 ```
 
   В итоге мы смогли по https прочитать секрет "otus/otus-rw/config" и изменить его.
+
 
 
 8. Настройка autounseal
@@ -1157,7 +1160,7 @@ bfdf602f-7c9c-cf15-56d2-3e68e29f2c70    vault-autounseal-1.vault-autounseal-inte
 
    Используя документацию https://developer.hashicorp.com/vault/tutorials/auto-unseal/autounseal-transit
    настраиваем кластер "vault-autounseal".
-```
+```console
 # kubectl exec -it vault-autounseal-0 -n vault-autounseal -- sh
 / $ vault login
 Token (will be hidden): 
@@ -1274,7 +1277,7 @@ vault-agent-injector-6df99c75d4-6kk7q   1/1     Running   0          11h
 ```
 
    Произведем unseal vault-0 использую ключ "-migrate" ( для того чтобы мигрировать на autounseal ), для подов vault-1 и vault-2 ключ "-migrate" использовать не будем:
-```
+```console
 # k exec -it vault-0 -- vault operator unseal -migrate '/rI2lB2cia++UGkQ0JF3P+rsNAJE6ekMqBoQU3vLKE4='
 Key                           Value
 ---                           -----
@@ -1341,7 +1344,7 @@ vault-agent-injector-6df99c75d4-6kk7q   1/1     Running   0          20h
 ```
 
    Лог успешного auto-unseal
-```
+```console
 # k logs vault-1
 ==> Vault server configuration:
 
@@ -1415,7 +1418,7 @@ postgresql      ClusterIP   10.101.124.174   <none>        5432/TCP   15m
 postgresql-hl   ClusterIP   None             <none>        5432/TCP   15m
 ```
    Для донастройки postgres пробрасываем порт:
-```consolw
+```console
 # k port-forward svc/postgresql 5432:5432 -n db &
 [1] 3122479
 [root@test2 vault-autounseal]# Forwarding from 127.0.0.1:5432 -> 5432
