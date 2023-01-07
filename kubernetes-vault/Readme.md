@@ -1,4 +1,4 @@
-#ДЗ-18 Kubernetes-vault
+#ДЗ-11 Kubernetes-vault
 
 1. Устанавливаем helm + consul.
 
