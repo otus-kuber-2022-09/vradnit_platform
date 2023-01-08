@@ -1,0 +1,114 @@
+ssh_pub_key = File.readlines("/root/.ssh/id_rsa.pub").first.strip
+
+$script1 = <<-SCRIPT
+echo start custom provizioning...
+
+ip r d default via 10.0.2.2 && ip r a default via 192.168.56.1
+
+swapoff -a
+sed -i '/ swap / s/^/#/' /etc/fstab
+
+cat > /etc/modules-load.d/containerd.conf <<EOF
+overlay
+br_netfilter
+EOF
+
+modprobe overlay
+modprobe br_netfilter
+
+cat > /etc/sysctl.d/99-kubernetes-cri.conf <<EOF
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+net.ipv4.ip_forward = 1
+EOF
+
+sysctl -p /etc/sysctl.d/99-kubernetes-cri.conf
+
+apt-get update && apt-get install -y \
+apt-transport-https ca-certificates curl software-properties-common gnupg2
+
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+add-apt-repository \
+"deb [arch=amd64] https://download.docker.com/linux/ubuntu \
+$(lsb_release -cs) \
+stable"
+
+apt-get update && apt-get install -y \
+containerd.io=1.2.13-1 \
+docker-ce=5:19.03.8~3-0~ubuntu-$(lsb_release -cs) \
+docker-ce-cli=5:19.03.8~3-0~ubuntu-$(lsb_release -cs)
+
+cat > /etc/docker/daemon.json <<EOF
+{
+"exec-opts": ["native.cgroupdriver=systemd"],
+"log-driver": "json-file",
+"log-opts": {
+"max-size": "100m"
+},
+"storage-driver": "overlay2"
+}
+EOF
+
+mkdir -p /etc/systemd/system/docker.service.d
+systemctl daemon-reload
+systemctl restart docker
+
+apt-get update && apt-get install -y apt-transport-https curl
+
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | apt-key add -
+
+cat <<EOF > /etc/apt/sources.list.d/kubernetes.list
+deb https://apt.kubernetes.io/ kubernetes-xenial main
+EOF
+
+apt-get update
+apt-get install -y kubelet=1.17.4-00 kubeadm=1.17.4-00 kubectl=1.17.4-00
+
+SCRIPT
+
+
+Vagrant.configure("2") do |config|
+
+  (1..1).each do |vmid|
+    vmname = "master-#{vmid}"
+    vmname_ip = "192.168.56.10#{vmid}"
+
+    config.vm.define vmname do |node|
+      node.vm.network "private_network", ip: vmname_ip
+      node.vm.hostname = vmname
+      node.vm.define vmname
+      node.vm.box_download_insecure = true
+      node.vm.box = "ubuntu/bionic64"
+      node.vm.provider "virtualbox" do |vb|
+        vb.gui = false
+        vb.memory = "8192"
+        vb.cpus = 2
+      end
+
+      node.vm.provision "shell", inline: $script1
+
+    end
+  end
+
+  (1..3).each do |vmid|
+    vmname = "worker-#{vmid}"
+    vmname_ip = "192.168.56.11#{vmid}"
+
+    config.vm.define vmname do |node|
+      node.vm.network "private_network", ip: vmname_ip
+      node.vm.hostname = vmname
+      node.vm.define vmname
+      node.vm.box_download_insecure = true
+      node.vm.box = "ubuntu/bionic64"
+      node.vm.provider "virtualbox" do |vb|
+        vb.gui = false
+        vb.memory = "4096"
+        vb.cpus = 2
+      end
+
+      node.vm.provision "shell", inline: $script1
+
+    end
+  end
+
+end

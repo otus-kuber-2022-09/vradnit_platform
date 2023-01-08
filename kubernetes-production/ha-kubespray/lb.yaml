@@ -1,0 +1,9 @@
+- hosts: lb
+  gather_facts: True
+  roles:
+    - role: lb
+      vars:
+        lb_cluster_virtual_ip: "{{ loadbalancer_apiserver.address }}"
+        lb_cluster_virtual_port: "{{ loadbalancer_apiserver.port }}"
+
+
