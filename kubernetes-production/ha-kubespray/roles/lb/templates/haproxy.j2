@@ -1,0 +1,29 @@
+global
+    maxconn     8192
+    user        haproxy
+    group       haproxy
+
+defaults
+    log     global
+    mode    tcp
+    retries 2
+    timeout client 30m
+    timeout connect 4s
+    timeout server 30m
+    timeout check 5s
+
+frontend kubernetes-api-server
+    bind *:{{ lb_cluster_virtual_port }}
+    default_backend kubernetes-api-server
+
+backend kubernetes-api-server
+    balance roundrobin
+{% for server in groups['kube-master'] %}
+    server {{ hostvars[server].inventory_hostname }} {{ hostvars[server].ansible_host }}:6443 check
+{% endfor %}
+
+listen stats
+    bind *:9000
+    mode http
+    stats enable
+    stats uri /stats

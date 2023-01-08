@@ -1,0 +1,18 @@
+repositories:
+  - name: grafana
+    url: https://grafana.github.io/helm-charts
+
+helmDefaults:
+  wait: true
+  timeout: 300
+  createNamespace: true
+
+releases:
+  - name: loki-stack
+    labels:
+      release: loki-stack
+    namespace: observability
+    chart: grafana/loki-stack
+    version: 2.8.8
+    values:
+    - "./loki-stack.values.yaml"

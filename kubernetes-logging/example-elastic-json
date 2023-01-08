@@ -1,0 +1,154 @@
+{
+  "_index": "radnit-kube-2022.12.11",
+  "_id": "bCPpAoUBGpHMkwwYdrsX",
+  "_version": 1,
+  "_score": 0,
+  "_source": {
+    "@timestamp": "2022-12-11T20:38:52.106Z",
+    "time": "2022-12-11T23:38:52.106074139+03:00",
+    "stream": "stdout",
+    "_p": "F",
+    "timestamp": 1670791132.104678,
+    "severity": "INFO",
+    "name": "recommendationservice-server",
+    "message": "[Recv ListRecommendations] product_ids=[u'0PUK6V6EV0', u'1YMWWN1N4O', u'6E92ZMYYFZ', u'2ZYFJ3GM2N', u'L9ECAV7KIM']",
+    "kubernetes": {
+      "pod_name": "recommendationservice-b8f974fc-lcgs5",
+      "namespace_name": "microservices-demo",
+      "pod_id": "4435a5f9-13da-460f-b6c5-2fa26cbf7949",
+      "labels": {
+        "app": "recommendationservice",
+        "pod-template-hash": "b8f974fc"
+      },
+      "annotations": {
+        "cni_projectcalico_org/containerID": "827c282cac32014b9d61fcaac7aa9c52c29ab6831481f8122a3d1bc31692ab65",
+        "cni_projectcalico_org/podIP": "10.244.196.92/32",
+        "cni_projectcalico_org/podIPs": "10.244.196.92/32"
+      },
+      "host": "k8s-w-1",
+      "container_name": "server",
+      "docker_id": "e6078172238bc20a6af3f734dfd4f56e8c9e6ef2a7c17052b2172abde68c0b28",
+      "container_hash": "gcr.io/google-samples/microservices-demo/recommendationservice@sha256:4ad2659fbe0a68bdfebcf86b8d95c5734f44014d484c94d9ffe0d313eed57f4e",
+      "container_image": "gcr.io/google-samples/microservices-demo/recommendationservice:v0.1.3"
+    }
+  },
+  "fields": {
+    "kubernetes.pod_id.keyword": [
+      "4435a5f9-13da-460f-b6c5-2fa26cbf7949"
+    ],
+    "stream.keyword": [
+      "stdout"
+    ],
+    "kubernetes.annotations.cni_projectcalico_org/containerID.keyword": [
+      "827c282cac32014b9d61fcaac7aa9c52c29ab6831481f8122a3d1bc31692ab65"
+    ],
+    "kubernetes.annotations.cni_projectcalico_org/podIPs": [
+      "10.244.196.92/32"
+    ],
+    "kubernetes.container_image.keyword": [
+      "gcr.io/google-samples/microservices-demo/recommendationservice:v0.1.3"
+    ],
+    "severity.keyword": [
+      "INFO"
+    ],
+    "kubernetes.labels.pod-template-hash": [
+      "b8f974fc"
+    ],
+    "stream": [
+      "stdout"
+    ],
+    "kubernetes.labels.app": [
+      "recommendationservice"
+    ],
+    "kubernetes.labels.app.keyword": [
+      "recommendationservice"
+    ],
+    "kubernetes.container_image": [
+      "gcr.io/google-samples/microservices-demo/recommendationservice:v0.1.3"
+    ],
+    "kubernetes.annotations.cni_projectcalico_org/containerID": [
+      "827c282cac32014b9d61fcaac7aa9c52c29ab6831481f8122a3d1bc31692ab65"
+    ],
+    "kubernetes.host": [
+      "k8s-w-1"
+    ],
+    "kubernetes.pod_name.keyword": [
+      "recommendationservice-b8f974fc-lcgs5"
+    ],
+    "kubernetes.docker_id.keyword": [
+      "e6078172238bc20a6af3f734dfd4f56e8c9e6ef2a7c17052b2172abde68c0b28"
+    ],
+    "kubernetes.annotations.cni_projectcalico_org/podIP.keyword": [
+      "10.244.196.92/32"
+    ],
+    "kubernetes.namespace_name.keyword": [
+      "microservices-demo"
+    ],
+    "timestamp": [
+      "1970-01-20T08:06:31.132Z"
+    ],
+    "kubernetes.annotations.cni_projectcalico_org/podIPs.keyword": [
+      "10.244.196.92/32"
+    ],
+    "severity": [
+      "INFO"
+    ],
+    "kubernetes.host.keyword": [
+      "k8s-w-1"
+    ],
+    "kubernetes.labels.pod-template-hash.keyword": [
+      "b8f974fc"
+    ],
+    "kubernetes.container_hash": [
+      "gcr.io/google-samples/microservices-demo/recommendationservice@sha256:4ad2659fbe0a68bdfebcf86b8d95c5734f44014d484c94d9ffe0d313eed57f4e"
+    ],
+    "kubernetes.container_name": [
+      "server"
+    ],
+    "name.keyword": [
+      "recommendationservice-server"
+    ],
+    "message": [
+      "[Recv ListRecommendations] product_ids=[u'0PUK6V6EV0', u'1YMWWN1N4O', u'6E92ZMYYFZ', u'2ZYFJ3GM2N', u'L9ECAV7KIM']"
+    ],
+    "kubernetes.namespace_name": [
+      "microservices-demo"
+    ],
+    "kubernetes.container_name.keyword": [
+      "server"
+    ],
+    "_p.keyword": [
+      "F"
+    ],
+    "kubernetes.container_hash.keyword": [
+      "gcr.io/google-samples/microservices-demo/recommendationservice@sha256:4ad2659fbe0a68bdfebcf86b8d95c5734f44014d484c94d9ffe0d313eed57f4e"
+    ],
+    "kubernetes.annotations.cni_projectcalico_org/podIP": [
+      "10.244.196.92/32"
+    ],
+    "kubernetes.docker_id": [
+      "e6078172238bc20a6af3f734dfd4f56e8c9e6ef2a7c17052b2172abde68c0b28"
+    ],
+    "_p": [
+      "F"
+    ],
+    "@timestamp": [
+      "2022-12-11T20:38:52.106Z"
+    ],
+    "kubernetes.pod_id": [
+      "4435a5f9-13da-460f-b6c5-2fa26cbf7949"
+    ],
+    "message.keyword": [
+      "[Recv ListRecommendations] product_ids=[u'0PUK6V6EV0', u'1YMWWN1N4O', u'6E92ZMYYFZ', u'2ZYFJ3GM2N', u'L9ECAV7KIM']"
+    ],
+    "name": [
+      "recommendationservice-server"
+    ],
+    "kubernetes.pod_name": [
+      "recommendationservice-b8f974fc-lcgs5"
+    ],
+    "time": [
+      "2022-12-11T20:38:52.106Z"
+    ]
+  }
+}

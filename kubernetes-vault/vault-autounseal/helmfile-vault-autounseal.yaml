@@ -1,0 +1,18 @@
+repositories:
+  - name: vault
+    url: git+https://github.com/hashicorp/vault-helm@/?ref=v0.23.0
+
+helmDefaults:
+  wait: true
+  timeout: 900
+  createNamespace: true
+
+releases:
+  - name: vault-autounseal
+    labels:
+      release: vault-autounseal
+    namespace: vault-autounseal
+    chart: vault/vault
+    version: 0.23.0
+    values:
+    - "./values-vault-autounseal.yaml"

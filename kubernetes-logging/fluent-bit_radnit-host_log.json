@@ -1,0 +1,126 @@
+{
+  "_index": "radnit-host-2022.12.15",
+  "_id": "EUQcF4UB3bOF1lhuKchz",
+  "_version": 1,
+  "_score": 0,
+  "_source": {
+    "@timestamp": "2022-12-15T18:46:39.107Z",
+    "PRIORITY": "6",
+    "_BOOT_ID": "23569607aee84bb1a70a4127a87f2a9e",
+    "_MACHINE_ID": "c00e49cc4f31455d965ca6e47359e67b",
+    "_HOSTNAME": "k8s-w-1",
+    "_TRANSPORT": "syslog",
+    "SYSLOG_IDENTIFIER": "systemd",
+    "_CAP_EFFECTIVE": "0",
+    "SYSLOG_FACILITY": "10",
+    "_AUDIT_LOGINUID": "1001",
+    "_UID": "1001",
+    "_GID": "1001",
+    "MESSAGE": "pam_unix(systemd-user:session): session closed for user voronov",
+    "_COMM": "(sd-pam)",
+    "_AUDIT_SESSION": "32",
+    "_PID": "2809757",
+    "_SOURCE_REALTIME_TIMESTAMP": "1671129999107369"
+  },
+  "fields": {
+    "_PID": [
+      "2809757"
+    ],
+    "_BOOT_ID.keyword": [
+      "23569607aee84bb1a70a4127a87f2a9e"
+    ],
+    "_CAP_EFFECTIVE": [
+      "0"
+    ],
+    "MESSAGE.keyword": [
+      "pam_unix(systemd-user:session): session closed for user voronov"
+    ],
+    "_SOURCE_REALTIME_TIMESTAMP": [
+      "1671129999107369"
+    ],
+    "_UID.keyword": [
+      "1001"
+    ],
+    "_PID.keyword": [
+      "2809757"
+    ],
+    "PRIORITY": [
+      "6"
+    ],
+    "SYSLOG_FACILITY.keyword": [
+      "10"
+    ],
+    "_GID": [
+      "1001"
+    ],
+    "_MACHINE_ID": [
+      "c00e49cc4f31455d965ca6e47359e67b"
+    ],
+    "MESSAGE": [
+      "pam_unix(systemd-user:session): session closed for user voronov"
+    ],
+    "_TRANSPORT": [
+      "syslog"
+    ],
+    "SYSLOG_IDENTIFIER": [
+      "systemd"
+    ],
+    "SYSLOG_FACILITY": [
+      "10"
+    ],
+    "_HOSTNAME.keyword": [
+      "k8s-w-1"
+    ],
+    "_UID": [
+      "1001"
+    ],
+    "_MACHINE_ID.keyword": [
+      "c00e49cc4f31455d965ca6e47359e67b"
+    ],
+    "_CAP_EFFECTIVE.keyword": [
+      "0"
+    ],
+    "_TRANSPORT.keyword": [
+      "syslog"
+    ],
+    "_SOURCE_REALTIME_TIMESTAMP.keyword": [
+      "1671129999107369"
+    ],
+    "PRIORITY.keyword": [
+      "6"
+    ],
+    "_AUDIT_SESSION": [
+      "32"
+    ],
+    "_COMM.keyword": [
+      "(sd-pam)"
+    ],
+    "_AUDIT_LOGINUID": [
+      "1001"
+    ],
+    "_COMM": [
+      "(sd-pam)"
+    ],
+    "SYSLOG_IDENTIFIER.keyword": [
+      "systemd"
+    ],
+    "_BOOT_ID": [
+      "23569607aee84bb1a70a4127a87f2a9e"
+    ],
+    "@timestamp": [
+      "2022-12-15T18:46:39.107Z"
+    ],
+    "_AUDIT_LOGINUID.keyword": [
+      "1001"
+    ],
+    "_GID.keyword": [
+      "1001"
+    ],
+    "_AUDIT_SESSION.keyword": [
+      "32"
+    ],
+    "_HOSTNAME": [
+      "k8s-w-1"
+    ]
+  }
+}

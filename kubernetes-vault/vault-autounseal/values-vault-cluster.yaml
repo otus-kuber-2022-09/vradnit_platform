@@ -1,0 +1,53 @@
+global:
+  enabled: true
+  tlsDisable: false
+
+server:
+  extraEnvironmentVars:
+    VAULT_CACERT: /vault/userconfig/vault-server-tls/vault.ca
+ 
+  volumes:    
+  - name: userconfig-vault-server-tls
+    secret:
+      defaultMode: 420
+      secretName: vault-server-tls
+
+  volumeMounts:
+  - mountPath: /vault/userconfig/vault-server-tls
+    name: userconfig-vault-server-tls
+    readOnly: true
+
+  standalone:
+    enabled: false
+  ha:
+    enabled: true
+    replicas: 3
+    config: |
+      ui = true
+
+      listener "tcp" {
+        address = "[::]:8200"
+        cluster_address = "[::]:8201"
+        tls_cert_file = "/vault/userconfig/vault-server-tls/vault.crt"
+        tls_key_file  = "/vault/userconfig/vault-server-tls/vault.key"
+        tls_client_ca_file = "/vault/userconfig/vault-server-tls/vault.ca"
+      }
+      storage "consul" {
+        path = "vault"
+        address = "HOST_IP:8500"
+      }
+
+      seal "transit" {
+        address = "https://vault-autounseal.vault-autounseal.svc:8200"
+        token = "hvs.CAESIKCToJ_r9-P2IAMe_fx9V0LE2m4f-jEnEsz7PBkNBKppGh4KHGh2cy5RaFZ5cFlFRkc2QUZxb1A3WEFVTmpKVUE"
+        disable_renewal = "false"
+        key_name = "autounseal"
+        mount_path = "transit/"
+        tls_skip_verify = "false"
+      }
+
+      service_registration "kubernetes" {}
+
+ui:
+  enabled: true
+  serviceType: "ClusterIP"

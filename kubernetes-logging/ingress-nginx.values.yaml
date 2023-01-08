@@ -1,0 +1,45 @@
+controller:
+  replicaCount: 3
+
+  config:
+    log-format-escape-json: "true"
+    log-format-upstream: '{"timestamp": "$time_iso8601", "proxy_protocol_addr": "$proxy_protocol_addr", "remote_addr": "$remote_addr", "remote_user": "$remote_user", "time_local": "$time_local", "request": "$request", "status": "$status", "body_bytes_sent": "$body_bytes_sent", "http_referer": "$http_referer", "http_user_agent": "$http_user_agent", "request_length": "$request_length", "request_time": "$request_time", "proxy_upstream_name": "$proxy_upstream_name", "proxy_alternative_upstream_name": "$proxy_alternative_upstream_name", "upstream_addr": "$upstream_addr", "upstream_response_length": "$upstream_response_length", "upstream_response_time": "$upstream_response_time", "upstream_status": "$upstream_status", "req_id": "$req_id", "server_protocol":"$server_protocol", "host": "$host", "uri": "$uri", "args": "$args", "x-forward-for": "$proxy_add_x_forwarded_for"}'
+
+  tolerations:
+  - key: node-role
+    operator: Equal
+    value: infra
+    effect: NoSchedule
+
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app.kubernetes.io/name
+              operator: In
+              values:
+              - ingress-nginx
+          topologyKey: kubernetes.io/hostname
+
+    nodeAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        nodeSelectorTerms:
+        - matchExpressions:
+          - key: kubernetes.io/hostname
+            operator: In
+            values:
+            - k8s-m-1
+            - k8s-m-2
+            - k8s-m-3
+
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: true
+      additionalLabels:
+        release: kube-prometheus
+
+

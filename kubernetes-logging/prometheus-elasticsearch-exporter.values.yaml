@@ -1,0 +1,68 @@
+tolerations:
+- key: node-role
+  operator: Equal
+  value: infra
+  effect: NoSchedule
+
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - k8s-m-1
+          - k8s-m-2
+          - k8s-m-3
+
+extraEnvSecrets:
+  ES_PASSWORD:
+    secret: elasticsearch-master-credentials
+    key: password
+  ES_USERNAME:
+    secret: elasticsearch-master-credentials
+    key: username
+es:
+  uri: https://elasticsearch-master:9200
+  sslSkipVerify: true
+
+serviceMonitor:
+  enabled: true
+  labels:
+    release: kube-prometheus
+
+prometheusRule:
+  enabled: true
+  labels:
+    release: kube-prometheus
+  rules:
+  - alert: ElasticsearchTooFewNodesRunning
+    expr: |
+      elasticsearch_cluster_health_number_of_nodes{service="{{ template "elasticsearch-exporter.fullname" . }}"} < 3
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      description: There are only {{ "{{ $value }}" }} < 3 ElasticSearch nodes running
+      summary: ElasticSearch running on less than 3 nodes
+
+  - alert: ElasticsearchHeapTooHigh
+    expr: |
+      elasticsearch_jvm_memory_used_bytes{service="{{ template "elasticsearch-exporter.fullname" . }}", area="heap"} / elasticsearch_jvm_memory_max_bytes{service="{{ template "elasticsearch-exporter.fullname" . }}", area="heap"} > 0.9
+    for: 15m
+    labels:
+      severity: critical
+    annotations:
+      description: The heap usage is over 90% for 15m
+      summary: ElasticSearch node {{ "{{ $labels.node }}" }} heap usage is high
+
+  - alert: ElasticsearchPendingTasks
+    expr: |
+      elasticsearch_cluster_health_number_of_pending_tasks{service="{{ template "elasticsearch-exporter.fullname" . }}"} > 0
+    for: 15m
+    labels:
+      severity: warning
+    annotations:
+      description: Elasticsearch has pending tasks {{ "{{ $value }}" }} > 0 for 15m
+      summary: Elasticsearch pending tasks instance {{ "{{ $labels.instance }}" }}
