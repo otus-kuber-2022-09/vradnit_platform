@@ -5,24 +5,26 @@
         https://gitlab.com/vradnit/microservices-demo
 
 2. В этот "учебный публичный проект" сохранен код репозитория microservices-demo:
+```console
         git clone https://github.com/GoogleCloudPlatform/microservices-demo
         cd microservices-demo
         git remote add gitlab https://github.com/GoogleCloudPlatform/microservices-demo.git
         git remote remove origin
         git push gitlab main
+```
 
 3. В директорию "deploy/charts" "учебный публичного проект" скопированы charts приложений из "deploy/charts":
 
        https://gitlab.com/express42/kubernetes-platform-demo/microservices-demo/
 
    Каждый чарт параметризирован (например чарт frontend):
-
+```console
        image:
          repository: frontend
          tag: v0.0.0
-
+```
    В итоге директория "deploy/charts" "учебного публичного проекта" имеет вид:
-
+```console
         # tree -L 1 deploy/charts
         deploy/charts
         ├── adservice
@@ -37,17 +39,17 @@
         ├── productcatalogservice
         ├── recommendationservice
         └── shippingservice
-
+```
 
 4. Имеем собственный кубернетес кластер (развернутый через kubeadm):
-
+```console
         # k get nodes 
         NAME      STATUS   ROLES                  AGE   VERSION
         k8s-m-1   Ready    control-plane,worker   84d   v1.24.6
         k8s-m-2   Ready    control-plane,worker   84d   v1.24.6
         k8s-m-3   Ready    control-plane,worker   84d   v1.24.6
         k8s-w-1   Ready    worker                 17d   v1.24.6
-
+```
 
 5. Для автоматизации развертывания сборки образов приложений в https://gitlab.com/vradnit/microservices-demo
    был создан gitlab pipeline, содержащий стадии build и push docker образов для каждого приложения
@@ -69,7 +71,7 @@
 
    Проинсталлируем flux2 в отдельный неймспейс "flux-system", при этом будем использовать 
    отдельный инфраструктурный репозиторий: https://gitlab.com/vradnit/radnit-k8s-gitops.git
-
+```console
         # flux bootstrap gitlab --components-extra=image-reflector-controller,image-automation-controller --owner=vradnit --personal  --repository=radnit-k8s-gitops --branch=main --token-auth
         Please enter your GitLab personal access token (PAT): 
         ► connecting to https://gitlab.com
@@ -102,10 +104,10 @@
         ✔ notification-controller: deployment ready
         ✔ source-controller: deployment ready
         ✔ all components are healthy
-
+```
 
     Проверка успешности создания компонентов:
-
+```console
         # k get gitrepo -n flux-system flux-system 
         NAME          URL                                                AGE    READY   STATUS
         flux-system   https://gitlab.com/vradnit/radnit-k8s-gitops.git   4m6s   True    stored artifact for revision 'main/e213784e2098e787e7c4a055c359192fcdc5b8c7'
@@ -134,10 +136,10 @@
 
         NAME                     	REVISION    	SUSPENDED	READY	MESSAGE                        
         kustomization/flux-system	main/e213784	False    	True 	Applied revision: main/e213784
-
+```
 
 7. Создаем GitRepository для релизов "microservices-demo", добавляем "deploy key" в "учебный проект" gitlab ( не забываем добавить grant write permission )
-
+```console
         # flux create source git microservices-demo --url=ssh://git@gitlab.com/vradnit/microservices-demo --branch=main -n microservices-demo
         ✚ generating GitRepository source
         ✔ collected public key from SSH server:
@@ -152,9 +154,9 @@
         ◎ waiting for GitRepository source reconciliation
         ✔ GitRepository source reconciliation completed
         ✔ fetched revision: main/edde88a944f737e16602c0a61846dc4bd22947df
-
+```
     Проверяем, что GitRepository и secret создались:
-
+```console
         # k get GitRepository -n microservices-demo microservices-demo
         NAME                 URL                                               AGE     READY   STATUS
         microservices-demo   ssh://git@gitlab.com/vradnit/microservices-demo   3m35s   True    stored artifact for revision 'main/edde88a944f737e16602c0a61846dc4bd22947df'
@@ -162,21 +164,21 @@
         # k get secret -n microservices-demo microservices-demo
         NAME                 TYPE     DATA   AGE
         microservices-demo   Opaque   3      3m43s
-
+```
 
 8. В директории "deploy/releases" "учебного проекта" для каждого приложения создаем манифесты helmrelease, в которых указываем путь до хелмчарта + gitrepo,
    а также с помощью "placeholder" указываем места в манифесте для коммитов со стороны "imageupdateautomation"
     например:
-
+```console
         values:
           image:
             repository: vradnit/cartservice # {"$imagepolicy": "microservices-demo:cartservice:name"}
             tag: v0.0.1 # {"$imagepolicy": "microservices-demo:cartservice:tag"}
-
+```
 
     В манифесте "deploy/releases/release_imageupdateautomation.yaml", для каждого приложения объявлены манифесты ImageRepository и ImagePolicy,
     которые предназначены для определения "за каким doker-registry следить" и "policy отслеживания" ( в нашем случае semver )
-
+```console
         apiVersion: image.toolkit.fluxcd.io/v1beta1
         kind: ImageRepository
         metadata:
@@ -198,10 +200,9 @@
           policy:
             semver:
               range: 0.0.x
-
+```
     В этом же манифесте объявлен общий манифест "ImageUpdateAutomation", необходимы для определения "gitrepo" + "путь в girepo" + "темплейт коммита":
-
-```    
+```console    
 apiVersion: image.toolkit.fluxcd.io/v1beta1
 kind: ImageUpdateAutomation
 metadata:
@@ -228,10 +229,9 @@ spec:
     strategy: Setters
 ```
 
-
     В манифесте "./deploy/releases/release_kustomization.yaml" объявлен основной kustomization releas, который предназначен для "разливки" всех манифестов в дирекории "./deploy/releases"
     ( а также самого себя )
-```
+```console
 # cat ./deploy/releases/release_kustomization.yaml 
 apiVersion: kustomize.toolkit.fluxcd.io/v1beta2
 kind: Kustomization
@@ -249,7 +249,7 @@ spec:
 ```
 
     Итоговый список манифестов:
-```
+```console
 # tree ./deploy/releases/
 ./deploy/releases/
 ├── helmrelease_adservice.yaml
@@ -273,7 +273,7 @@ spec:
    Для создания неймспейса воспользуемся инфраструктурным репозиторием, создадим в нем отдельную директорию, для инфра-манифестов "microservices-demo"
    ( сразу добавим лейбл для istio )
 
-```
+```console
 # cat  radnit-k8s-gitops/microservices-demo/namespace.yaml 
 apiVersion: v1
 kind: Namespace
@@ -284,7 +284,7 @@ metadata:
 ```
 
     Итоговая структура репозитория "https://gitlab.com/vradnit/radnit-k8s-gitops.git":
-```
+```console
 ├── flux-system
 │   ├── gotk-components.yaml
 │   ├── gotk-sync.yaml
@@ -297,7 +297,7 @@ metadata:
 
 
 10. Запускаем создание "общего kustomize релиза":
-```
+```console
 # k create -n microservices-demo -f ./deploy/releases/release_kustomization.yaml
 kustomization.kustomize.toolkit.fluxcd.io/microservices-demo created
 ```
@@ -305,7 +305,7 @@ kustomization.kustomize.toolkit.fluxcd.io/microservices-demo created
     Через некторое время в кластере появится kustomization "microservices-demo" и helmrelease для каждого приложения.
     
     проверяем:
-```
+```console
 # k get kustomization -n microservices-demo
 NAME                 AGE   READY   STATUS
 microservices-demo   30s   True    Applied revision: main/edde88a944f737e16602c0a61846dc4bd22947df
@@ -355,7 +355,7 @@ microservices-demo	main/edde88a	False    	True 	Applied revision: main/edde88a
     а ImageUpdateAutomation сделает коммит в репо.
 
     пример коммита:    
-```
+```console
 @@ -15,4 +15,4 @@ spec:
    values:
      image:
@@ -377,7 +377,7 @@ microservices-demo	main/edde88a	False    	True 	Applied revision: main/edde88a
     https://github.com/GoogleCloudPlatform/microservices-demo/issues/801
     https://user-images.githubusercontent.com/10292865/199751426-88295dfd-3f59-45c2-a60e-5bb41a80585a.png
 
-```
+```console
 --- a/deploy/charts/emailservice/templates/deployment.yaml
 +++ b/deploy/charts/emailservice/templates/deployment.yaml
 @@ -19,6 +19,8 @@ spec:
@@ -395,7 +395,7 @@ microservices-demo	main/edde88a	False    	True 	Applied revision: main/edde88a
 13. Настройка Canary deployment посредством Flagger+Istio.
 
     Установка istioctl:
-```
+```console
 # curl -L https://istio.io/downloadIstio | sh -
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
                                  Dload  Upload   Total   Spent    Left  Speed
@@ -423,7 +423,7 @@ Need more information? Visit https://istio.io/latest/docs/setup/install/
 ```
 
     Установка Istio в кластер:
-```
+```console
 # istioctl x precheck
 ✔ No issues found when checking the cluster. Istio is safe to install or upgrade!
   To get started, check out https://istio.io/latest/docs/setup/getting-started/
@@ -444,7 +444,7 @@ Thank you for installing Istio 1.16.  Please take a few minutes to tell us about
 
 
     В итоге получили следующую картину:
-```
+```console
 # k get pods -n microservices-demo -o wide
 NAME                                            READY   STATUS    RESTARTS       AGE   IP               NODE      NOMINATED NODE   READINESS GATES
 adservice-56b4587549-2bzhd                      2/2     Running   1 (104s ago)   24m   10.244.196.103   k8s-w-1   <none>           <none>
@@ -466,7 +466,7 @@ shippingservice-849f97c7f5-v9sjr                2/2     Running   0             
     В хелм чарте frontend создаем манифесты Istio.
 
     Манифест "Gateway", обеспечивающий (через loadbalancer и имя "shop.radnit.ru" ) доступ снаружи:
-```
+```console
 # cat ./deploy/charts/frontend/templates/gateway.yaml 
 apiVersion: networking.istio.io/v1beta1
 kind: Gateway
@@ -485,7 +485,7 @@ spec:
 ```
 
     Манифест "VirtualService" маршрутизирующий трафик c "shop.radnit.ru" на сервис "frontend"
-```
+```console
 # cat ./deploy/charts/frontend/templates/virtualService.yaml 
 apiVersion: networking.istio.io/v1beta1
 kind: VirtualService
@@ -505,7 +505,7 @@ spec:
 ```
 
     Таким образом трафик с 'Host: shop.radnit.ru' пришедший на внешний IP: 192.168.0.129 будет маршрутизироваться в pod "frontend":
-```
+```console
 # k get svc -n istio-system istio-ingressgateway
 NAME                   TYPE           CLUSTER-IP       EXTERNAL-IP     PORT(S)                                                                      AGE
 istio-ingressgateway   LoadBalancer   10.105.205.130   192.168.0.129   15021:32369/TCP,80:31301/TCP,443:32261/TCP,31400:30024/TCP,15443:32505/TCP   7d18h
@@ -518,13 +518,13 @@ istio-ingressgateway   LoadBalancer   10.105.205.130   192.168.0.129   15021:323
     а также укажем имя сервиса kube-prometheus ( для сбора метрик с istio sidecar ).
     ( "kube-prometheus" у нас уже установлен )
 
-```
+```console
 # kubectl apply -f https://raw.githubusercontent.com/weaveworks/flagger/master/artifacts/flagger/crd.yaml
 # helmfile -f helmfile-flagger.yaml apply
 ```
 
    В итоге на этом шаге имеем:
-```
+```console
 # k get pod -n istio-system
 NAME                                   READY   STATUS                   RESTARTS       AGE
 flagger-7dffb69748-nkrvg               1/1     Running                  1              6d3h
@@ -541,7 +541,7 @@ flagger               3d21h
 16. Создание манифеста Canary.yaml:
     В чарт frontend добавим манифест описывающий стратегию обновления (тестирования) ресурса "frontend":
 
-```
+```console
 apiVersion: flagger.app/v1beta1
 kind: Canary
 metadata:
@@ -580,7 +580,7 @@ spec:
 ```
 
     По итогам "разливки" манифеста "Canary" в кластере должны появится:
-```
+```console
 # kubectl get canary -n microservices-demo
 NAME       STATUS      WEIGHT   LASTTRANSITIONTIME
 frontend   Initializing   0        2022-12-22T19:17:11Z
@@ -596,7 +596,7 @@ frontend-primary-79c4f459d8-bclg8   2/2     Running   2          19h
     Произведем тестовую сборку образа frontend с новым тэгом v0.0.3 и зугрузим его в докерхаб.
     После необходимых итераций контроллеров "flux" произведена попытка деплоя микросервиса "frontend",
     но она неудачная, т.к. нет необходимых метрик в прометее "kube-system"
-```
+```console
 11m         Warning   Synced                       canary/frontend                                        Halt advancement no values found for istio metric request-success-rate probably frontend.microservices-demo is not receiving traffic: running query failed: no values found
 10m         Warning   Synced                       canary/frontend                                        Rolling back frontend.microservices-demo failed checks threshold reached 6
 10m         Warning   Synced                       canary/frontend                                        Canary failed! Scaling down frontend.microservices-demo
@@ -618,7 +618,7 @@ frontend-primary-79c4f459d8-bclg8   2/2     Running   2          19h
        https://grafana.com/grafana/dashboards/15158-flagger-canary-status/
 
     Скрины успешности релиза "c v0.0.7 на v0.0.8" приведены в:
-```
+```console
 # tree kubernetes-gitops/flagger-dashboard-img/
 kubernetes-gitops/flagger-dashboard-img/
 ├── image_2022-12-21_22-06-32.png
@@ -626,3 +626,383 @@ kubernetes-gitops/flagger-dashboard-img/
 ├── image_2022-12-21_22-08-00.png
 └── image_2022-12-21_22-09-02.png
 ```
+
+
+
+X. Argocd + Argocd-Image-Updater
+
+   Установка "argocd" + "argocd-image-updater"
+   Подготовим helmfile + values:
+   "kubernetes-gitops/argocd/helmfile-argocd.yaml"
+   "kubernetes-gitops/argocd/values-argocd.yaml" 
+
+   Запускаем установку:
+```console
+# kubectl create namespace argocd 
+
+#helmfile -f helmfile-argocd.yaml apply
+...
+UPDATED RELEASES:
+NAME                   CHART                                       VERSION
+argocd                 argocd/argo-cd                               5.17.1
+argocd-image-updater   argocd-image-updater/argocd-image-updater     0.8.1
+```
+
+   Проверяем статус подов:
+```console
+# k get pods -n argocd 
+NAME                                                READY   STATUS    RESTARTS   AGE
+argocd-application-controller-0                     1/1     Running   0          3m52s
+argocd-applicationset-controller-76bccb9647-wz6db   1/1     Running   0          3m52s
+argocd-dex-server-98b669df6-lzl58                   1/1     Running   0          3m52s
+argocd-image-updater-5d5959cb94-26llf               1/1     Running   0          4m1s
+argocd-notifications-controller-579b4f8f4c-dsx6r    1/1     Running   0          3m52s
+argocd-redis-57fbd6b455-qmj2q                       1/1     Running   0          3m52s
+argocd-repo-server-5778d47fd7-pmgs6                 1/1     Running   0          3m52s
+argocd-server-755bfbf69-4f9bw                       1/1     Running   0          3m52s
+```
+
+   Устанавливаем консольную утилиту argocd:
+```console
+# curl -L https://github.com/argoproj/argo-cd/releases/download/v2.5.6/argocd-linux-amd64 -o /usr/local/bin/argocd && chmod a+x /usr/local/bin/argocd
+
+# argocd version
+argocd: v2.5.6+9db2c94
+  BuildDate: 2023-01-10T19:55:00Z
+  GitCommit: 9db2c9471f6ff599c3f630b446e940d3a065620b
+  GitTreeState: clean
+  GoVersion: go1.18.9
+  Compiler: gc
+  Platform: linux/amd64
+argocd-server: v2.5.6+9db2c94
+```
+
+   Проверяем доступность web интерфейса: https://argocd-k8s.radnit.ru
+   используя секрет из:
+```console
+# k get secret -n argocd argocd-initial-admin-secret
+NAME                          TYPE     DATA   AGE
+argocd-initial-admin-secret   Opaque   1      6m48s
+```
+
+   Подключаемся с инстансу argocd и проверяем видимость дефолтного проекта:
+```console
+# argocd login --grpc-web argocd-k8s.radnit.ru
+Username: admin
+Password: 
+'admin:login' logged in successfully
+
+# argocd proj list
+NAME     DESCRIPTION  DESTINATIONS  SOURCES  CLUSTER-RESOURCE-WHITELIST  NAMESPACE-RESOURCE-BLACKLIST  SIGNATURE-KEYS  ORPHANED-RESOURCES
+default               *,*           *        */*                         <none>                        <none>          disabled
+```
+
+   Создадим две репы:
+   . для приложения hepstershop:
+     https://gitlab.com/vradnit/argocd-microservices-demo.git
+   . для инфраструктурных манифестов:
+     https://gitlab.com/vradnit/argocd-infra.git
+
+   Для каждой репы в гитлабе создадим токен:
+   . для приложения RW+майнтейнер ( т.к. нужен push в main )
+   . для инфраструктуры только RO+reporter
+
+
+   Добавляем полученные токены в argocd:
+```console
+# argocd repo add https://gitlab.com/vradnit/argocd-infra.git --username vradnit-infra --password glpat-XXXXXX --name vradnit-infra --type git
+Repository 'https://gitlab.com/vradnit/argocd-infra.git' added
+
+# argocd repo add https://gitlab.com/vradnit/argocd-microservices-demo.git --username vradnit-microservices-demo --password glpat-XXXXXX --name vradnit-microservices-demo --type git
+Repository 'https://gitlab.com/vradnit/argocd-microservices-demo.git' added
+
+# argocd repo list
+TYPE  NAME                        REPO                                                      INSECURE  OCI    LFS    CREDS  STATUS      MESSAGE  PROJECT
+git   vradnit-infra               https://gitlab.com/vradnit/argocd-infra.git               false     false  false  true   Successful           
+git   vradnit-microservices-demo  https://gitlab.com/vradnit/argocd-microservices-demo.git  false     false  false  true   Successful 
+```
+
+   Добавим в репозиторий https://gitlab.com/vradnit/argocd-infra.git
+   . aplication "application-infra", для создание всех манифестов из данной репы
+   . создание неймспейса "microservices-demo" с лейбдлом istio
+   . appproject "microservices-demo", где укажем разрешения на создание манифестов только в неймспейсе "microservices-demo"
+   . aplication adservice,cartservice,checkoutservice...shippingservice , т.е. всех апликаций приложения "hipster-shop"
+
+   итоговая структура репозитория https://gitlab.com/vradnit/argocd-infra.git:
+```console
+# tree ./argocd-infra/
+./argocd-infra/
+├── argocd
+│   ├── application_adservice.yaml
+│   ├── application_cartservice.yaml
+│   ├── application_checkoutservice.yaml
+│   ├── application_currencyservice.yaml
+│   ├── application_emailservice.yaml
+│   ├── application_frontend.yaml
+│   ├── application_grafana-load-dashboards.yaml
+│   ├── application_infra.yaml
+│   ├── application_loadgenerator.yaml
+│   ├── application_paymentservice.yaml
+│   ├── application_productcatalogservice.yaml
+│   ├── application_recommendationservice.yaml
+│   ├── application_shippingservice.yaml
+│   └── appproject_microservices-demo.yaml
+├── microservices-demo
+│   └── namespace.yaml
+└── Readme.md
+```
+
+   Содержимое application "application-infra":
+```console
+# cat ./argocd-infra/argocd/application_infra.yaml 
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: application-infra
+  namespace: argocd
+spec:
+  destination:
+    namespace: argocd
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    path: ./
+    repoURL: https://gitlab.com/vradnit/argocd-infra.git
+    targetRevision: HEAD
+    directory:
+      recurse: true
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+```
+
+   Содержимое appproject "microservices-demo":
+```console
+# cat ./argocd-infra/argocd/appproject_microservices-demo.yaml 
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: microservices-demo
+  namespace: argocd
+spec:
+  clusterResourceWhitelist: []
+  destinations:
+  - namespace: microservices-demo
+    server: https://kubernetes.default.svc
+  namespaceResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  sourceNamespaces:
+  - microservices-demo
+  sourceRepos:
+  - '*'
+```
+
+   Содержимое одной application, с аннотациями для "argocd-image-updater":
+```console
+# cat ./argocd-infra/argocd/application_adservice.yaml 
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  annotations:
+    argocd-image-updater.argoproj.io/adservice.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/adservice.helm.image-tag: image.tag
+    argocd-image-updater.argoproj.io/adservice.update-strategy: semver
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/image-list: adservice=vradnit/adservice:v0.0.x
+    argocd-image-updater.argoproj.io/write-back-method: git
+  name: adservice
+  namespace: argocd
+spec:
+  destination:
+    namespace: microservices-demo
+    server: https://kubernetes.default.svc
+  project: microservices-demo
+  source:
+    helm:
+      valueFiles:
+      - values.yaml
+    path: deploy/charts/adservice
+    repoURL: https://gitlab.com/vradnit/argocd-microservices-demo.git
+    targetRevision: HEAD
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+```
+
+   Структура репозитория https://gitlab.com/vradnit/argocd-microservices-demo.git, отличается от "варианта с fluxcd", только тем что из нее удалена директория "./releases",
+   т.е. в ней остались только helm charts: 
+```console
+# tree ./argocd-microservices-demo/
+./argocd-microservices-demo/
+└── deploy
+    └── charts
+        ├── adservice
+        │   ├── Chart.yaml
+        │   ├── templates
+        │   │   ├── deployment.yaml
+        │   │   └── service.yaml
+        │   └── values.yaml
+        ├── cartservice
+        │   ├── Chart.lock
+        │   ├── charts
+        │   │   └── redis-10.2.1.tgz
+        │   ├── Chart.yaml
+        │   ├── templates
+        │   │   ├── deployment.yaml
+        │   │   ├── _helpers.tpl
+        │   │   └── service.yaml
+        │   └── values.yaml
+        ├── checkoutservice
+        │   ├── Chart.yaml
+        │   ├── templates
+        │   │   ├── deployment.yaml
+        │   │   └── service.yaml
+        │   └── values.yaml
+        ├── currencyservice
+        │   ├── Chart.yaml
+        │   ├── templates
+        │   │   ├── deployment.yaml
+        │   │   └── service.yaml
+        │   └── values.yaml
+        ├── emailservice
+        │   ├── Chart.yaml
+        │   ├── templates
+        │   │   ├── deployment.yaml
+        │   │   └── service.yaml
+        │   └── values.yaml
+        ├── frontend
+        │   ├── Chart.yaml
+        │   ├── templates
+        │   │   ├── canary.yaml
+        │   │   ├── deployment.yaml
+        │   │   ├── gateway.yaml
+        │   │   ├── serviceMonitor.yaml
+        │   │   ├── service.yaml
+        │   │   └── virtualService.yaml
+        │   └── values.yaml
+        ├── grafana-load-dashboards
+        │   ├── Chart.yaml
+        │   ├── dashboards
+        │   │   └── go-processes.json
+        │   ├── README.md
+        │   ├── templates
+        │   │   └── configmap.yaml
+        │   └── values.yaml
+        ├── loadgenerator
+        │   ├── Chart.yaml
+        │   ├── templates
+        │   │   └── deployment.yaml
+        │   └── values.yaml
+        ├── paymentservice
+        │   ├── Chart.yaml
+        │   ├── templates
+        │   │   ├── deployment.yaml
+        │   │   └── service.yaml
+        │   └── values.yaml
+        ├── productcatalogservice
+        │   ├── Chart.yaml
+        │   ├── templates
+        │   │   ├── deployment.yaml
+        │   │   └── service.yaml
+        │   └── values.yaml
+        ├── recommendationservice
+        │   ├── Chart.yaml
+        │   ├── templates
+        │   │   ├── deployment.yaml
+        │   │   └── service.yaml
+        │   └── values.yaml
+        └── shippingservice
+            ├── Chart.yaml
+            ├── templates
+            │   ├── deployment.yaml
+            │   └── service.yaml
+            └── values.yaml
+```
+
+
+   После проведенных подготовительных работ, создаем "основную апликацию", и через некторое время в кластере появится приложение "hipster-shop"
+   ( istio у нас уже установлен )
+```console
+# kubectl create -f ./argocd-infra/argocd/application_infra.yaml
+```
+
+   Проверяем статус "application" и статус подов:
+```console
+# argocd proj list
+NAME                DESCRIPTION  DESTINATIONS                                       SOURCES  CLUSTER-RESOURCE-WHITELIST  NAMESPACE-RESOURCE-BLACKLIST  SIGNATURE-KEYS  ORPHANED-RESOURCES
+default                          *,*                                                *        */*                         <none>                        <none>          disabled
+microservices-demo               https://kubernetes.default.svc,microservices-demo  *        <none>                      <none>                        <none>          disabled
+ 
+# argocd app list
+NAME                            CLUSTER                         NAMESPACE           PROJECT             STATUS  HEALTH   SYNCPOLICY  CONDITIONS  REPO                                                      PATH                                   TARGET
+argocd/adservice                https://kubernetes.default.svc  microservices-demo  microservices-demo  Synced  Healthy  Auto-Prune  <none>      https://gitlab.com/vradnit/argocd-microservices-demo.git  deploy/charts/adservice                HEAD
+argocd/application-infra        https://kubernetes.default.svc  argocd              default             Synced  Healthy  Auto-Prune  <none>      https://gitlab.com/vradnit/argocd-infra.git               ./                                     HEAD
+argocd/cartservice              https://kubernetes.default.svc  microservices-demo  microservices-demo  Synced  Healthy  Auto-Prune  <none>      https://gitlab.com/vradnit/argocd-microservices-demo.git  deploy/charts/cartservice              HEAD
+argocd/checkoutservice          https://kubernetes.default.svc  microservices-demo  microservices-demo  Synced  Healthy  Auto-Prune  <none>      https://gitlab.com/vradnit/argocd-microservices-demo.git  deploy/charts/checkoutservice          HEAD
+argocd/currencyservice          https://kubernetes.default.svc  microservices-demo  microservices-demo  Synced  Healthy  Auto-Prune  <none>      https://gitlab.com/vradnit/argocd-microservices-demo.git  deploy/charts/currencyservice          HEAD
+argocd/emailservice             https://kubernetes.default.svc  microservices-demo  microservices-demo  Synced  Healthy  Auto-Prune  <none>      https://gitlab.com/vradnit/argocd-microservices-demo.git  deploy/charts/emailservice             HEAD
+argocd/frontend                 https://kubernetes.default.svc  microservices-demo  microservices-demo  Synced  Unknown  Auto-Prune  <none>      https://gitlab.com/vradnit/argocd-microservices-demo.git  deploy/charts/frontend                 HEAD
+argocd/grafana-load-dashboards  https://kubernetes.default.svc  microservices-demo  microservices-demo  Synced  Healthy  Auto-Prune  <none>      https://gitlab.com/vradnit/argocd-microservices-demo.git  deploy/charts/grafana-load-dashboards  HEAD
+argocd/loadgenerator            https://kubernetes.default.svc  microservices-demo  microservices-demo  Synced  Healthy  Auto-Prune  <none>      https://gitlab.com/vradnit/argocd-microservices-demo.git  deploy/charts/loadgenerator            HEAD
+argocd/paymentservice           https://kubernetes.default.svc  microservices-demo  microservices-demo  Synced  Healthy  Auto-Prune  <none>      https://gitlab.com/vradnit/argocd-microservices-demo.git  deploy/charts/paymentservice           HEAD
+argocd/productcatalogservice    https://kubernetes.default.svc  microservices-demo  microservices-demo  Synced  Healthy  Auto-Prune  <none>      https://gitlab.com/vradnit/argocd-microservices-demo.git  deploy/charts/productcatalogservice    HEAD
+argocd/recommendationservice    https://kubernetes.default.svc  microservices-demo  microservices-demo  Synced  Healthy  Auto-Prune  <none>      https://gitlab.com/vradnit/argocd-microservices-demo.git  deploy/charts/recommendationservice    HEAD
+argocd/shippingservice          https://kubernetes.default.svc  microservices-demo  microservices-demo  Synced  Healthy  Auto-Prune  <none>      https://gitlab.com/vradnit/argocd-microservices-demo.git  deploy/charts/shippingservice          HEAD
+ 
+# k get pods -n microservices-demo
+NAME                                    READY   STATUS    RESTARTS      AGE
+adservice-74bc4457cd-rmk7g              2/2     Running   1 (70m ago)   71m
+cartservice-648c5c87d5-4qj99            2/2     Running   0             71m
+cartservice-redis-master-0              2/2     Running   0             75m
+checkoutservice-65644b6f7d-ghsh6        2/2     Running   0             71m
+currencyservice-6594476596-pmd8w        2/2     Running   0             71m
+emailservice-7d955f9696-ddx7q           2/2     Running   0             71m
+frontend-6b54f89477-67jkp               2/2     Running   0             60m
+loadgenerator-748fb7fc95-xzhj8          2/2     Running   0             71m
+paymentservice-5f897b99d9-xswfc         2/2     Running   0             71m
+productcatalogservice-ccbbf994f-z6lxz   2/2     Running   0             71m
+recommendationservice-b75d7cc-94z57     2/2     Running   0             71m
+shippingservice-6b6f9d74d7-dr6v2        2/2     Running   0             71m
+```
+
+   Проверка работы "argocd-image-updater".
+   Загрузили в докерхаб образы для всех деплойментов с тегом 'v0.0.11'.
+
+   Через некторое время "argocd-image-updater" обнаружил новый тег и сделал коммит в каждый хелм чарт.
+
+   Пример коммита:
+```console
+commit 03b72b51a0da2af9d802fc0630ae46331f095fb3 (HEAD -> main, origin/main, origin/HEAD)
+Author: argocd-image-updater <noreply@argoproj.io>
+Date:   Sat Jan 14 20:55:00 2023 +0000
+
+    build: automatic update of shippingservice
+    
+    updates image vradnit/shippingservice tag 'v0.0.9' to 'v0.0.11'
+
+diff --git a/deploy/charts/shippingservice/.argocd-source-shippingservice.yaml b/deploy/charts/shippingservice/.argocd-source-shippingservice.yaml
+index 160cb53..c23e33b 100644
+--- a/deploy/charts/shippingservice/.argocd-source-shippingservice.yaml
++++ b/deploy/charts/shippingservice/.argocd-source-shippingservice.yaml
+@@ -4,5 +4,5 @@ helm:
+     value: vradnit/shippingservice
+     forcestring: true
+   - name: image.tag
+-    value: v0.0.9
++    value: v0.0.11
+     forcestring: true
+```
+
+   Через некторое время "argocd-repo-server" обнаружил новый коммит и "оттемплейтил" helm chart с новыми параметрами.
+   Логи "argocd-image-updater" и "argocd-repo-server" приведены в файлах:
+```console
+argocd/log_argocd-image-updater.log
+agocd/log_argocd-repo-server.log
+```   
+
+   На этом этапе мы установили argocd и настроили его на работу с argocd-image-updater
+
+
