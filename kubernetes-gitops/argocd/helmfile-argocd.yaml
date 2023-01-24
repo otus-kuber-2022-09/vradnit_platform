@@ -1,0 +1,42 @@
+repositories:
+  - name: argocd
+    url: git+https://github.com/argoproj/argo-helm@charts/argo-cd?ref=main
+  - name: argocd-image-updater
+    url: git+https://github.com/argoproj/argo-helm@charts/argocd-image-updater?ref=main
+  - name: argo-rollouts
+    url: git+https://github.com/argoproj/argo-helm@charts/argo-rollouts?ref=main
+
+helmDefaults:
+  wait: true
+  timeout: 900
+  createNamespace: true
+
+releases:
+  - name: argocd
+    labels:
+      release: argocd
+    namespace: argocd
+    chart: argocd/argo-cd
+    version: 5.17.1
+    values:
+    - "./values-argocd.yaml"
+  - name: argocd-image-updater
+    labels:
+      release: argocd-image-updater
+    namespace: argocd
+    chart: argocd-image-updater/argocd-image-updater
+    version: 0.8.1
+  - name: argo-rollouts
+    labels:
+      release: argo-rollouts
+    namespace: argo-rollouts
+    chart: argo-rollouts/argo-rollouts
+    version: 2.21.1
+    values:
+    - controller:
+        metrics:
+          enabled: true
+          serviceMonitor:
+            enabled: true
+            additionalLabels:
+              release: kube-prometheus
