@@ -1,0 +1,19 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: shippingservice
+  namespace: microservices-demo
+spec:
+  chart:
+    spec:
+      chart: ./deploy/charts/shippingservice
+      sourceRef:
+        kind: GitRepository
+        name: microservices-demo
+      reconcileStrategy: Revision
+  interval: 2m0s
+  targetNamespace: microservices-demo
+  values:
+    image:
+      repository: vradnit/shippingservice # {"$imagepolicy": "microservices-demo:shippingservice:name"}
+      tag: v0.0.1 # {"$imagepolicy": "microservices-demo:shippingservice:tag"}

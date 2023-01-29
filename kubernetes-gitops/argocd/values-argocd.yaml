@@ -1,0 +1,25 @@
+server:
+  ingress:
+    enabled: true
+    annotations:
+      kubernetes.io/tls-acme: "true"
+      cert-manager.io/cluster-issuer: "letsencrypt-production"
+      cert-manager.io/acme-challenge-type: http01
+    ingressClassName: "nginx"
+    hosts:
+    - argocd-k8s.radnit.ru
+    paths:
+      - /
+    tls:
+    - secretName: argocd-k8s.radnit.ru
+      hosts:
+      - argocd-k8s.radnit.ru
+    https: true
+
+configs:
+  cm:
+    application.resourceTrackingMethod: annotation
+  params:
+    server.insecure: true
+    application.namespaces: microservices-*
+

@@ -1,0 +1,19 @@
+apiVersion: helm.toolkit.fluxcd.io/v2beta1
+kind: HelmRelease
+metadata:
+  name: grafana-load-dashboards
+  namespace: microservices-demo
+spec:
+  chart:
+    spec:
+      chart: ./deploy/charts/grafana-load-dashboards
+      sourceRef:
+        kind: GitRepository
+        name: microservices-demo
+      reconcileStrategy: Revision
+  interval: 2m0s
+  targetNamespace: microservices-demo
+  values:
+    image:
+      repository: vradnit/grafana-load-dashboards # {"$imagepolicy": "microservices-demo:grafana-load-dashboards:name"}
+      tag: v0.0.1 # {"$imagepolicy": "microservices-demo:grafana-load-dashboards:tag"}

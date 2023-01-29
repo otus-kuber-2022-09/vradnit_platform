@@ -1,0 +1,37 @@
+time="2023-01-14T20:52:24Z" level=info msg="Setting new image to vradnit/frontend:v0.0.11" alias=frontend application=frontend image_name=vradnit/frontend image_tag=v0.0.9 registry=
+time="2023-01-14T20:52:24Z" level=info msg="Successfully updated image 'vradnit/frontend:v0.0.9' to 'vradnit/frontend:v0.0.11', but pending spec update (dry run=false)" alias=frontend application=frontend image_name=vradnit/frontend image_tag=v0.0.9 registry=
+time="2023-01-14T20:52:24Z" level=info msg="Committing 1 parameter update(s) for application frontend" application=frontend
+time="2023-01-14T20:52:24Z" level=info msg="Setting new image to vradnit/productcatalogservice:v0.0.11" alias=productcatalogservice application=productcatalogservice image_name=vradnit/productcatalogservice image_tag=v0.0.9 registry=
+time="2023-01-14T20:52:24Z" level=info msg="Successfully updated image 'vradnit/productcatalogservice:v0.0.9' to 'vradnit/productcatalogservice:v0.0.11', but pending spec update (dry run=false)" alias=productcatalogservice application=productcatalogservice image_name=vradnit/productcatalogservice image_tag=v0.0.9 registry=
+time="2023-01-14T20:52:24Z" level=info msg="Committing 1 parameter update(s) for application productcatalogservice" application=productcatalogservice
+time="2023-01-14T20:52:24Z" level=info msg="Setting new image to vradnit/loadgenerator:v0.0.11" alias=loadgenerator application=loadgenerator image_name=vradnit/loadgenerator image_tag=v0.0.9 registry=
+time="2023-01-14T20:52:24Z" level=info msg="Successfully updated image 'vradnit/loadgenerator:v0.0.9' to 'vradnit/loadgenerator:v0.0.11', but pending spec update (dry run=false)" alias=loadgenerator application=loadgenerator image_name=vradnit/loadgenerator image_tag=v0.0.9 registry=
+time="2023-01-14T20:52:24Z" level=info msg="Committing 1 parameter update(s) for application loadgenerator" application=loadgenerator
+time="2023-01-14T20:52:24Z" level=info msg="Setting new image to vradnit/currencyservice:v0.0.11" alias=currencyservice application=currencyservice image_name=vradnit/currencyservice image_tag=v0.0.9 registry=
+time="2023-01-14T20:52:24Z" level=info msg="Successfully updated image 'vradnit/currencyservice:v0.0.9' to 'vradnit/currencyservice:v0.0.11', but pending spec update (dry run=false)" alias=currencyservice application=currencyservice image_name=vradnit/currencyservice image_tag=v0.0.9 registry=
+time="2023-01-14T20:52:24Z" level=info msg="Committing 1 parameter update(s) for application currencyservice" application=currencyservice
+time="2023-01-14T20:52:25Z" level=info msg="Setting new image to vradnit/recommendationservice:v0.0.11" alias=recommendationservice application=recommendationservice image_name=vradnit/recommendationservice image_tag=v0.0.9 registry=
+time="2023-01-14T20:52:25Z" level=info msg="Successfully updated image 'vradnit/recommendationservice:v0.0.9' to 'vradnit/recommendationservice:v0.0.11', but pending spec update (dry run=false)" alias=recommendationservice application=recommendationservice image_name=vradnit/recommendationservice image_tag=v0.0.9 registry=
+time="2023-01-14T20:52:25Z" level=info msg="Committing 1 parameter update(s) for application recommendationservice" application=recommendationservice
+time="2023-01-14T20:52:25Z" level=info msg="Setting new image to vradnit/cartservice:v0.0.11" alias=cartservice application=cartservice image_name=vradnit/cartservice image_tag=v0.0.9 registry=
+time="2023-01-14T20:52:25Z" level=info msg="Successfully updated image 'vradnit/cartservice:v0.0.9' to 'vradnit/cartservice:v0.0.11', but pending spec update (dry run=false)" alias=cartservice application=cartservice image_name=vradnit/cartservice image_tag=v0.0.9 registry=
+time="2023-01-14T20:52:25Z" level=info msg="Committing 1 parameter update(s) for application cartservice" application=cartservice
+time="2023-01-14T20:52:25Z" level=info msg="Setting new image to vradnit/emailservice:v0.0.11" alias=emailservice application=emailservice image_name=vradnit/emailservice image_tag=v0.0.9 registry=
+time="2023-01-14T20:52:25Z" level=info msg="Successfully updated image 'vradnit/emailservice:v0.0.9' to 'vradnit/emailservice:v0.0.11', but pending spec update (dry run=false)" alias=emailservice application=emailservice image_name=vradnit/emailservice image_tag=v0.0.9 registry=
+time="2023-01-14T20:52:25Z" level=info msg="Committing 1 parameter update(s) for application emailservice" application=emailservice
+time="2023-01-14T20:52:25Z" level=info msg="Setting new image to vradnit/checkoutservice:v0.0.11" alias=checkoutservice application=checkoutservice image_name=vradnit/checkoutservice image_tag=v0.0.9 registry=
+time="2023-01-14T20:52:25Z" level=info msg="Successfully updated image 'vradnit/checkoutservice:v0.0.9' to 'vradnit/checkoutservice:v0.0.11', but pending spec update (dry run=false)" alias=checkoutservice application=checkoutservice image_name=vradnit/checkoutservice image_tag=v0.0.9 registry=
+time="2023-01-14T20:52:25Z" level=info msg="Committing 1 parameter update(s) for application checkoutservice" application=checkoutservice
+time="2023-01-14T20:52:25Z" level=info msg="Setting new image to vradnit/paymentservice:v0.0.11" alias=paymentservice application=paymentservice image_name=vradnit/paymentservice image_tag=v0.0.9 registry=
+time="2023-01-14T20:52:25Z" level=info msg="Successfully updated image 'vradnit/paymentservice:v0.0.9' to 'vradnit/paymentservice:v0.0.11', but pending spec update (dry run=false)" alias=paymentservice application=paymentservice image_name=vradnit/paymentservice image_tag=v0.0.9 registry=
+time="2023-01-14T20:52:25Z" level=info msg="Committing 1 parameter update(s) for application paymentservice" application=paymentservice
+time="2023-01-14T20:52:27Z" level=info msg="Successfully updated the live application spec" application=frontend
+time="2023-01-14T20:52:30Z" level=info msg="Successfully updated the live application spec" application=productcatalogservice
+time="2023-01-14T20:52:34Z" level=info msg="Successfully updated the live application spec" application=loadgenerator
+time="2023-01-14T20:52:37Z" level=info msg="Successfully updated the live application spec" application=currencyservice
+time="2023-01-14T20:52:40Z" level=info msg="Successfully updated the live application spec" application=recommendationservice
+time="2023-01-14T20:52:44Z" level=info msg="Successfully updated the live application spec" application=cartservice
+time="2023-01-14T20:52:47Z" level=info msg="Successfully updated the live application spec" application=emailservice
+time="2023-01-14T20:52:50Z" level=info msg="Successfully updated the live application spec" application=checkoutservice
+time="2023-01-14T20:52:54Z" level=info msg="Successfully updated the live application spec" application=paymentservice
+

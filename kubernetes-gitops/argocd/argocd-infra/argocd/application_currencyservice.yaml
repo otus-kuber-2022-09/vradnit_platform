@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  annotations:
+    argocd-image-updater.argoproj.io/currencyservice.helm.image-name: image.repository
+    argocd-image-updater.argoproj.io/currencyservice.helm.image-tag: image.tag
+    argocd-image-updater.argoproj.io/currencyservice.update-strategy: semver
+    argocd-image-updater.argoproj.io/git-branch: main
+    argocd-image-updater.argoproj.io/image-list: currencyservice=vradnit/currencyservice:v0.0.x
+    argocd-image-updater.argoproj.io/write-back-method: git
+  name: currencyservice
+  namespace: argocd
+spec:
+  destination:
+    namespace: microservices-demo
+    server: https://kubernetes.default.svc
+  project: microservices-demo
+  source:
+    helm:
+      valueFiles:
+      - values.yaml
+    path: deploy/charts/currencyservice
+    repoURL: https://gitlab.com/vradnit/argocd-microservices-demo.git
+    targetRevision: HEAD
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

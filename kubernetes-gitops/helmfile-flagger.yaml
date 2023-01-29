@@ -1,0 +1,25 @@
+repositories:
+  - name: flagger
+    url: https://flagger.app
+
+helmDefaults:
+  wait: true
+  timeout: 300
+  createNamespace: true
+
+releases:
+  - name: flagger
+    namespace: istio-system 
+    chart: flagger/flagger
+    version: 1.27.0
+    values:
+    - crd:
+        create: false
+    - meshProvider: istio
+    - metricsServer: http://kube-prometheus-kube-prome-prometheus.observability.svc:9090
+    - podMonitor:
+        enabled: true
+        interval: 15s
+        additionalLabels:
+          release: kube-prometheus
+

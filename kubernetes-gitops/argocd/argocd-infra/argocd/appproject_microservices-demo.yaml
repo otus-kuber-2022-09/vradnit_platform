@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: microservices-demo
+  namespace: argocd
+spec:
+  clusterResourceWhitelist: []
+  destinations:
+  - namespace: microservices-demo
+    server: https://kubernetes.default.svc
+  namespaceResourceWhitelist:
+  - group: '*'
+    kind: '*'
+  sourceNamespaces:
+  - microservices-demo
+  sourceRepos:
+  - '*'

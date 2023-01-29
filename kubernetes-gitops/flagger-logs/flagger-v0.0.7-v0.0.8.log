@@ -1,0 +1,134 @@
+# kubectl logs -n istio-system flagger-7dffb69748-nkrvg
+
+{"level":"info","ts":"2022-12-21T18:34:11.462Z","caller":"router/kubernetes_default.go:233","msg":"Service frontend updated","canary":"frontend.microservices-demo"}
+{"level":"info","ts":"2022-12-21T18:34:11.543Z","caller":"controller/events.go:33","msg":"New revision detected! Scaling up frontend.microservices-demo","canary":"frontend.microservices-demo"}
+{"level":"info","ts":"2022-12-21T18:35:11.495Z","caller":"controller/events.go:33","msg":"Starting canary analysis for frontend.microservices-demo","canary":"frontend.microservices-demo"}
+{"level":"info","ts":"2022-12-21T18:35:11.553Z","caller":"controller/events.go:33","msg":"Advance frontend.microservices-demo canary weight 5","canary":"frontend.microservices-demo"}
+{"level":"info","ts":"2022-12-21T18:36:11.564Z","caller":"controller/events.go:45","msg":"Halt frontend.microservices-demo advancement request duration 986ms > 500ms","canary":"frontend.microservices-demo"}
+{"level":"info","ts":"2022-12-21T18:37:11.579Z","caller":"controller/events.go:33","msg":"Advance frontend.microservices-demo canary weight 10","canary":"frontend.microservices-demo"}
+{"level":"info","ts":"2022-12-21T18:38:11.586Z","caller":"controller/events.go:33","msg":"Advance frontend.microservices-demo canary weight 15","canary":"frontend.microservices-demo"}
+{"level":"info","ts":"2022-12-21T18:39:11.587Z","caller":"controller/events.go:45","msg":"Halt frontend.microservices-demo advancement request duration 974ms > 500ms","canary":"frontend.microservices-demo"}
+{"level":"info","ts":"2022-12-21T18:40:11.572Z","caller":"controller/events.go:33","msg":"Advance frontend.microservices-demo canary weight 20","canary":"frontend.microservices-demo"}
+{"level":"info","ts":"2022-12-21T18:41:11.546Z","caller":"controller/events.go:33","msg":"Advance frontend.microservices-demo canary weight 25","canary":"frontend.microservices-demo"}
+{"level":"info","ts":"2022-12-21T18:42:11.551Z","caller":"controller/events.go:33","msg":"Advance frontend.microservices-demo canary weight 30","canary":"frontend.microservices-demo"}
+{"level":"info","ts":"2022-12-21T18:43:11.545Z","caller":"controller/events.go:33","msg":"Advance frontend.microservices-demo canary weight 35","canary":"frontend.microservices-demo"}
+{"level":"info","ts":"2022-12-21T18:44:11.641Z","caller":"controller/events.go:33","msg":"Advance frontend.microservices-demo canary weight 40","canary":"frontend.microservices-demo"}
+{"level":"info","ts":"2022-12-21T18:45:11.573Z","caller":"controller/events.go:33","msg":"Advance frontend.microservices-demo canary weight 45","canary":"frontend.microservices-demo"}
+{"level":"info","ts":"2022-12-21T18:46:11.596Z","caller":"controller/events.go:33","msg":"Advance frontend.microservices-demo canary weight 50","canary":"frontend.microservices-demo"}
+{"level":"info","ts":"2022-12-21T18:47:11.505Z","caller":"controller/events.go:33","msg":"Copying frontend.microservices-demo template spec to frontend-primary.microservices-demo","canary":"frontend.microservices-demo"}
+{"level":"info","ts":"2022-12-21T18:48:11.478Z","caller":"controller/events.go:33","msg":"Routing all traffic to primary","canary":"frontend.microservices-demo"}
+{"level":"info","ts":"2022-12-21T18:49:11.593Z","caller":"controller/events.go:33","msg":"Promotion completed! Scaling down frontend.microservices-demo","canary":"frontend.microservices-demo"}
+
+
+
+# k get pods -w
+NAME                                            READY   STATUS    RESTARTS       AGE
+adservice-56b4587549-2bzhd                      2/2     Running   1 (2d8h ago)   2d8h
+cartservice-65dd75c585-nbn7v                    2/2     Running   0              2d8h
+checkoutservice-5bdd494bbc-g6zql                2/2     Running   0              2d8h
+currencyservice-5c7665cbcc-4mr58                2/2     Running   0              2d8h
+emailservice-567cd6479b-d4zbt                   2/2     Running   0              2d8h
+frontend-primary-69d4999c44-gjshc               2/2     Running   0              5h50m
+loadgenerator-775d68c57f-4gwlz                  2/2     Running   0              2d8h
+microservices-demo-cartservice-redis-master-0   2/2     Running   0              2d8h
+paymentservice-dfb9c9d4c-69mlq                  2/2     Running   0              2d8h
+productcatalogservice-8586bf6d85-vp567          2/2     Running   0              2d8h
+recommendationservice-6b956ccd7d-hn9bs          2/2     Running   0              2d8h
+shippingservice-849f97c7f5-v9sjr                2/2     Running   0              2d8h
+frontend-7f4889b76d-m9rz4                       0/2     Pending   0              0s
+frontend-7f4889b76d-m9rz4                       0/2     Pending   0              1s
+frontend-7f4889b76d-m9rz4                       0/2     Init:0/1   0              1s
+frontend-7f4889b76d-m9rz4                       0/2     Init:0/1   0              2s
+frontend-7f4889b76d-m9rz4                       0/2     PodInitializing   0              4s
+frontend-7f4889b76d-m9rz4                       0/2     Running           0              15s
+frontend-7f4889b76d-m9rz4                       1/2     Running           0              16s
+frontend-7f4889b76d-m9rz4                       2/2     Running           0              31s
+frontend-primary-6887f8654d-jrhxs               0/2     Pending           0              0s
+frontend-primary-6887f8654d-jrhxs               0/2     Pending           0              0s
+frontend-primary-6887f8654d-jrhxs               0/2     Init:0/1          0              0s
+frontend-primary-6887f8654d-jrhxs               0/2     Init:0/1          0              1s
+frontend-primary-6887f8654d-jrhxs               0/2     PodInitializing   0              2s
+frontend-primary-6887f8654d-jrhxs               0/2     Running           0              4s
+frontend-primary-6887f8654d-jrhxs               1/2     Running           0              6s
+frontend-primary-6887f8654d-jrhxs               2/2     Running           0              21s
+frontend-primary-69d4999c44-gjshc               2/2     Terminating       0              6h5m
+frontend-primary-69d4999c44-gjshc               2/2     Terminating       0              6h5m
+frontend-primary-69d4999c44-gjshc               0/2     Terminating       0              6h5m
+frontend-primary-69d4999c44-gjshc               0/2     Terminating       0              6h5m
+frontend-primary-69d4999c44-gjshc               0/2     Terminating       0              6h5m
+frontend-7f4889b76d-m9rz4                       2/2     Terminating       0              15m
+frontend-7f4889b76d-m9rz4                       2/2     Terminating       0              15m
+frontend-7f4889b76d-m9rz4                       0/2     Terminating       0              15m
+frontend-7f4889b76d-m9rz4                       0/2     Terminating       0              15m
+frontend-7f4889b76d-m9rz4                       0/2     Terminating       0              15m
+
+
+
+# k get event -w 
+
+LAST SEEN   TYPE      REASON                    OBJECT                                                 MESSAGE
+0s          Normal    Synced                    canary/frontend                                        New revision detected! Scaling up frontend.microservices-demo
+0s          Normal    ScalingReplicaSet         deployment/frontend                                    Scaled up replica set frontend-7f4889b76d to 1
+0s          Normal    SuccessfulCreate          replicaset/frontend-7f4889b76d                         Created pod: frontend-7f4889b76d-m9rz4
+0s          Normal    Scheduled                 pod/frontend-7f4889b76d-m9rz4                          Successfully assigned microservices-demo/frontend-7f4889b76d-m9rz4 to k8s-w-1
+0s          Normal    Pulled                    pod/frontend-7f4889b76d-m9rz4                          Container image "docker.io/istio/proxyv2:1.16.1" already present on machine
+0s          Normal    Created                   pod/frontend-7f4889b76d-m9rz4                          Created container istio-init
+0s          Normal    Started                   pod/frontend-7f4889b76d-m9rz4                          Started container istio-init
+0s          Normal    Pulling                   pod/frontend-7f4889b76d-m9rz4                          Pulling image "vradnit/frontend:v0.0.8"
+0s          Normal    Pulled                    pod/frontend-7f4889b76d-m9rz4                          Successfully pulled image "vradnit/frontend:v0.0.8" in 9.858743715s
+0s          Normal    Created                   pod/frontend-7f4889b76d-m9rz4                          Created container server
+0s          Normal    Started                   pod/frontend-7f4889b76d-m9rz4                          Started container server
+0s          Normal    Pulled                    pod/frontend-7f4889b76d-m9rz4                          Container image "docker.io/istio/proxyv2:1.16.1" already present on machine
+0s          Normal    Created                   pod/frontend-7f4889b76d-m9rz4                          Created container istio-proxy
+0s          Normal    Started                   pod/frontend-7f4889b76d-m9rz4                          Started container istio-proxy
+0s          Warning   Unhealthy                 pod/frontend-7f4889b76d-m9rz4                          Readiness probe failed: Get "http://10.244.196.118:15021/healthz/ready": dial tcp 10.244.196.118:15021: connect: connection refused
+0s          Normal    info                      imagepolicy/frontend                                   Latest image tag for 'vradnit/frontend' resolved to: v0.0.8
+0s          Normal    Synced                    canary/frontend                                        Starting canary analysis for frontend.microservices-demo
+0s          Normal    Synced                    canary/frontend                                        Advance frontend.microservices-demo canary weight 5
+0s          Warning   Synced                    canary/frontend                                        Halt frontend.microservices-demo advancement request duration 986ms > 500ms
+0s          Normal    Synced                    canary/frontend                                        Advance frontend.microservices-demo canary weight 10
+0s          Normal    Synced                    canary/frontend                                        Advance frontend.microservices-demo canary weight 15
+0s          Normal    info                      imagepolicy/frontend                                   Latest image tag for 'vradnit/frontend' resolved to: v0.0.8
+0s          Warning   Synced                    canary/frontend                                        Halt frontend.microservices-demo advancement request duration 974ms > 500ms
+0s          Normal    Synced                    canary/frontend                                        Advance frontend.microservices-demo canary weight 20
+0s          Normal    Synced                    canary/frontend                                        Advance frontend.microservices-demo canary weight 25
+0s          Normal    Synced                    canary/frontend                                        Advance frontend.microservices-demo canary weight 30
+0s          Normal    Synced                    canary/frontend                                        Advance frontend.microservices-demo canary weight 35
+0s          Normal    Synced                    canary/frontend                                        Advance frontend.microservices-demo canary weight 40
+0s          Normal    info                      imagepolicy/frontend                                   Latest image tag for 'vradnit/frontend' resolved to: v0.0.8
+0s          Normal    Synced                    canary/frontend                                        Advance frontend.microservices-demo canary weight 45
+0s          Normal    Synced                    canary/frontend                                        Advance frontend.microservices-demo canary weight 50
+0s          Normal    Synced                    canary/frontend                                        Copying frontend.microservices-demo template spec to frontend-primary.microservices-demo
+0s          Normal    ScalingReplicaSet         deployment/frontend-primary                            Scaled up replica set frontend-primary-6887f8654d to 1
+0s          Normal    SuccessfulCreate          replicaset/frontend-primary-6887f8654d                 Created pod: frontend-primary-6887f8654d-jrhxs
+0s          Normal    Scheduled                 pod/frontend-primary-6887f8654d-jrhxs                  Successfully assigned microservices-demo/frontend-primary-6887f8654d-jrhxs to k8s-w-1
+0s          Normal    Pulled                    pod/frontend-primary-6887f8654d-jrhxs                  Container image "docker.io/istio/proxyv2:1.16.1" already present on machine
+0s          Normal    Created                   pod/frontend-primary-6887f8654d-jrhxs                  Created container istio-init
+0s          Normal    Started                   pod/frontend-primary-6887f8654d-jrhxs                  Started container istio-init
+0s          Normal    Pulled                    pod/frontend-primary-6887f8654d-jrhxs                  Container image "vradnit/frontend:v0.0.8" already present on machine
+0s          Normal    Created                   pod/frontend-primary-6887f8654d-jrhxs                  Created container server
+0s          Normal    Started                   pod/frontend-primary-6887f8654d-jrhxs                  Started container server
+0s          Normal    Pulled                    pod/frontend-primary-6887f8654d-jrhxs                  Container image "docker.io/istio/proxyv2:1.16.1" already present on machine
+0s          Normal    Created                   pod/frontend-primary-6887f8654d-jrhxs                  Created container istio-proxy
+0s          Normal    Started                   pod/frontend-primary-6887f8654d-jrhxs                  Started container istio-proxy
+0s          Warning   Unhealthy                 pod/frontend-primary-6887f8654d-jrhxs                  Readiness probe failed: Get "http://10.244.196.125:15021/healthz/ready": dial tcp 10.244.196.125:15021: connect: connection refused
+0s          Warning   Unhealthy                 pod/frontend-primary-6887f8654d-jrhxs                  Readiness probe failed: Get "http://10.244.196.125:15021/healthz/ready": dial tcp 10.244.196.125:15021: connect: connection refused
+0s          Normal    ScalingReplicaSet         deployment/frontend-primary                            Scaled down replica set frontend-primary-69d4999c44 to 0
+0s          Normal    Killing                   pod/frontend-primary-69d4999c44-gjshc                  Stopping container server
+0s          Normal    SuccessfulDelete          replicaset/frontend-primary-69d4999c44                 Deleted pod: frontend-primary-69d4999c44-gjshc
+0s          Normal    Killing                   pod/frontend-primary-69d4999c44-gjshc                  Stopping container istio-proxy
+0s          Warning   Unhealthy                 pod/frontend-primary-69d4999c44-gjshc                  Readiness probe failed: HTTP probe failed with statuscode: 503
+0s          Warning   Unhealthy                 pod/frontend-primary-69d4999c44-gjshc                  Readiness probe failed: HTTP probe failed with statuscode: 503
+0s          Warning   Unhealthy                 pod/frontend-primary-69d4999c44-gjshc                  Readiness probe failed: Get "http://10.244.196.121:15021/healthz/ready": dial tcp 10.244.196.121:15021: connect: invalid argument
+0s          Normal    Synced                    canary/frontend                                        Routing all traffic to primary
+0s          Normal    info                      imagepolicy/frontend                                   Latest image tag for 'vradnit/frontend' resolved to: v0.0.8
+0s          Normal    ScalingReplicaSet         deployment/frontend                                    Scaled down replica set frontend-7f4889b76d to 0
+0s          Normal    Synced                    canary/frontend                                        Promotion completed! Scaling down frontend.microservices-demo
+0s          Normal    SuccessfulDelete          replicaset/frontend-7f4889b76d                         Deleted pod: frontend-7f4889b76d-m9rz4
+0s          Normal    Killing                   pod/frontend-7f4889b76d-m9rz4                          Stopping container server
+0s          Normal    Killing                   pod/frontend-7f4889b76d-m9rz4                          Stopping container istio-proxy
+0s          Warning   Unhealthy                 pod/frontend-7f4889b76d-m9rz4                          Readiness probe failed: Get "http://10.244.196.118:15020/app-health/server/readyz": dial tcp 10.244.196.118:15020: connect: connection refused
+0s          Warning   Unhealthy                 pod/frontend-7f4889b76d-m9rz4                          Readiness probe failed: HTTP probe failed with statuscode: 503
+0s          Warning   Unhealthy                 pod/frontend-7f4889b76d-m9rz4                          Readiness probe failed: HTTP probe failed with statuscode: 503
+0s          Warning   Unhealthy                 pod/frontend-7f4889b76d-m9rz4                          Readiness probe failed: HTTP probe failed with statuscode: 503
+0s          Normal    Killing                   pod/frontend-7f4889b76d-m9rz4                          Stopping container istio-proxy
