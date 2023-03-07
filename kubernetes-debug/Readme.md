@@ -1,4 +1,6 @@
-  Тестирование работы "strace" при "kubectl debug"
+# ДЗ kubernetes-debug
+
+## Тестирование работы "strace" при "kubectl debug"
 
   Протестируем работу "strace" в двух режимах:
   "kubectl-debug" ( "сторонний плагин" )
@@ -238,8 +240,7 @@ strace: Process 29 attached
   Успех, strace заработал.
 
 
-
-  iptables-tailer
+## iptables-tailer
 
   Установка "netperf-operator"
 ```console
