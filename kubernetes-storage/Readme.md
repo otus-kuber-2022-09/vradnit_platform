@@ -1,3 +1,6 @@
+# ДЗ Kubernetes-storage
+
+
   Поднимаем однонодовый кластер:
 ```console
 # minikube start --driver='docker' --kubernetes-version='1.24.6'
@@ -428,7 +431,7 @@ drwxr-xr-x    1 root     root            14 Mar  4 19:24 ..
 -rw-r--r--    1 root     root            19 Mar  4 19:19 file-2
 -rw-r--r--    1 root     root            19 Mar  4 19:19 file-3
 ```
-
+  Данные сохранились.
 
 
 
